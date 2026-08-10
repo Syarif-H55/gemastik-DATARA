@@ -2,9 +2,9 @@
 
 ## Repo state
 
-- Project: **KIRA** ("Dari Data Menjadi Keputusan") — Decision Support System untuk UMKM Food & Beverage skala mikro (kompetisi Gemastik).
+- Project: **DATARA** ("Data Analitik dan Rekomendasi untuk Pertumbuhan UMKM") — Decision Support System untuk UMKM Food & Beverage skala mikro (kompetisi Gemastik).
 - Arsitektur decoupled: **frontend** (Next.js) mengonsumsi REST API dari **backend** (FastAPI + Python + MySQL) yang belum ada di repo ini.
-- Requirements spec: **`PRD KIRA.docx`** (v1.1, 9 Agustus 2026). Baca sebelum mengubah struktur/feature. File `Copy of PSI - PRD Template dari syarif.docx` adalah template lama, bukan spesifikasi.
+- Requirements spec: **`PRD DATARA.docx.md`** (v1.1, 9 Agustus 2026). Baca sebelum mengubah struktur/feature.
 - Frontend (`frontend/`) sudah dapat dijalankan: `npm run dev`. Backend FastAPI belum dibuat.
 
 ## Frontend (`frontend/`)
