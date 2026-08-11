@@ -9,7 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowsDownUp, MagnifyingGlass } from "@phosphor-icons/react";
 import { formatRupiah, formatPercent } from "@/lib/format";
-import { getProductProfitability, getProductClass } from "@/lib/demo-data";
+import { getProductClass } from "@/lib/demo-data";
+import { fetchProductProfitability } from "@/lib/datara";
+import { useApi } from "@/hooks/use-api";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
 type SortKey = "name" | "selling_price" | "hpp" | "unit_profit" | "margin_percent" | "qty_sold" | "total_profit";
@@ -40,7 +44,8 @@ const classTone: Record<string, string> = {
 };
 
 export default function ProductsPage() {
-  const profits = React.useMemo(() => getProductProfitability(), []);
+  const { data, loading, error } = useApi(fetchProductProfitability);
+  const profits = React.useMemo(() => data ?? [], [data]);
   const classes = React.useMemo(() => new Map(profits.map((p) => [p.product_id, getProductClass(p)])), [profits]);
   const [query, setQuery] = React.useState("");
   const [category, setCategory] = React.useState<string>("all");
@@ -81,6 +86,18 @@ export default function ProductsPage() {
         description="Klasifikasi produk (menguntungkan, berpotensi, perlu dievaluasi) berdasarkan margin, penjualan, dan biaya."
       />
 
+      {loading ? (
+        <div className="grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+      ) : error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : (
+      <>
       <div className="mb-4 grid gap-4 sm:grid-cols-3">
         {(["profitable", "potential", "evaluate"] as const).map((c) => {
           const count = profits.filter((p) => classes.get(p.product_id)?.classification === c).length;
@@ -199,6 +216,8 @@ export default function ProductsPage() {
           </Table>
         </CardContent>
       </Card>
+      </>
+      )}
     </>
   );
 }

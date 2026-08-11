@@ -7,9 +7,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Trash, ShoppingBag, Package } from "@phosphor-icons/react";
 import { formatRupiah } from "@/lib/format";
-import { demoProducts, getProductById } from "@/lib/demo-data";
+import { fetchProducts, createTransaction } from "@/lib/datara";
+import { useApi } from "@/hooks/use-api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -20,9 +23,11 @@ type CartItem = {
 };
 
 export default function TransactionsPage() {
+  const { data: products, loading, error } = useApi(fetchProducts);
   const [cart, setCart] = React.useState<CartItem[]>([]);
   const [customer, setCustomer] = React.useState("");
   const [paymentInput, setPaymentInput] = React.useState("");
+  const [saving, setSaving] = React.useState(false);
 
   const removeFromCart = (productId: number) => setCart((prev) => prev.filter((c) => c.productId !== productId));
 
@@ -36,15 +41,26 @@ export default function TransactionsPage() {
 
   const subtotal = cart.reduce((sum, c) => sum + c.quantity * c.unitPrice, 0);
 
-  const saveTransaction = () => {
+  const saveTransaction = async () => {
     if (cart.length === 0) {
       toast.error("Keranjang masih kosong");
       return;
     }
-    toast.success(`Transaksi disimpan (${cart.length} item, total ${formatRupiah(subtotal)}). Stok berkurang otomatis.`);
-    setCart([]);
-    setCustomer("");
-    setPaymentInput("");
+    setSaving(true);
+    try {
+      await createTransaction(
+        cart.map((c) => ({ product_id: c.productId, quantity: c.quantity })),
+        { customer_name: customer.trim() || undefined }
+      );
+      toast.success(`Transaksi disimpan (${cart.length} item, total ${formatRupiah(subtotal)}). Stok berkurang otomatis.`);
+      setCart([]);
+      setCustomer("");
+      setPaymentInput("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal menyimpan transaksi.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -54,6 +70,12 @@ export default function TransactionsPage() {
         description="Pencatatan penjualan harian. Persediaan stok akan terpotong otomatis."
       />
 
+      {error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
       <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
         <div className="space-y-4">
           <Card>
@@ -62,52 +84,60 @@ export default function TransactionsPage() {
               <CardDescription>Klik produk untuk menambahkan ke keranjang</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {demoProducts.map((p) => {
-                  const inCart = cart.find((c) => c.productId === p.id);
-                  const lowStock = p.stock <= p.low_stock_threshold;
-                  return (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        if (inCart && inCart.quantity >= p.stock) {
-                          toast(`Stok "${p.name}" tidak cukup (${p.stock})`);
-                          return;
-                        }
-                        setCart((prev) => {
-                          const existing = prev.find((c) => c.productId === p.id);
-                          if (existing) {
-                            return prev.map((c) => (c.productId === p.id ? { ...c, quantity: c.quantity + 1 } : c));
+              {loading ? (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <Skeleton key={i} className="h-16 w-full" />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {(products ?? []).map((p) => {
+                    const inCart = cart.find((c) => c.productId === p.id);
+                    const lowStock = p.stock <= p.low_stock_threshold;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          if (inCart && inCart.quantity >= p.stock) {
+                            toast(`Stok "${p.name}" tidak cukup (${p.stock})`);
+                            return;
                           }
-                          return [...prev, { productId: p.id, quantity: 1, unitPrice: p.selling_price }];
-                        });
-                      }}
-                      className={cn(
-                        "flex items-start justify-between gap-2 rounded-md border p-3 text-left transition-colors hover:border-foreground",
-                        inCart ? "border-foreground bg-foreground text-background" : "border-border hover:bg-muted"
-                      )}
-                    >
-                      <div>
-                        <div className="text-sm font-medium">{p.name}</div>
-                        <div className={cn("text-xs", inCart ? "text-background/70" : "text-muted-foreground")}>
-                          {formatRupiah(p.selling_price)}
+                          setCart((prev) => {
+                            const existing = prev.find((c) => c.productId === p.id);
+                            if (existing) {
+                              return prev.map((c) => (c.productId === p.id ? { ...c, quantity: c.quantity + 1 } : c));
+                            }
+                            return [...prev, { productId: p.id, quantity: 1, unitPrice: p.selling_price }];
+                          });
+                        }}
+                        className={cn(
+                          "flex items-start justify-between gap-2 rounded-md border p-3 text-left transition-colors hover:border-foreground",
+                          inCart ? "border-foreground bg-foreground text-background" : "border-border hover:bg-muted"
+                        )}
+                      >
+                        <div>
+                          <div className="text-sm font-medium">{p.name}</div>
+                          <div className={cn("text-xs", inCart ? "text-background/70" : "text-muted-foreground")}>
+                            {formatRupiah(p.selling_price)}
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex flex-col items-end gap-1">
-                        <span className={cn("text-xs", inCart ? "text-background/70" : lowStock ? "text-red-600" : "text-muted-foreground")}>
-                          stok: {p.stock}
-                        </span>
-                        {inCart ? (
-                          <span className={cn("rounded px-1 text-xs font-semibold", "bg-background text-foreground")}>
-                            {inCart.quantity}x
+                        <div className="flex flex-col items-end gap-1">
+                          <span className={cn("text-xs", inCart ? "text-background/70" : lowStock ? "text-red-600" : "text-muted-foreground")}>
+                            stok: {p.stock}
                           </span>
-                        ) : null}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                          {inCart ? (
+                            <span className={cn("rounded px-1 text-xs font-semibold", "bg-background text-foreground")}>
+                              {inCart.quantity}x
+                            </span>
+                          ) : null}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -122,7 +152,7 @@ export default function TransactionsPage() {
               ) : (
                 <div className="space-y-2">
                   {cart.map((c) => {
-                    const p = getProductById(c.productId);
+                    const p = (products ?? []).find((prod) => prod.id === c.productId);
                     if (!p) return null;
                     return (
                       <div key={c.productId} className="flex items-center gap-3 rounded-md border p-2">
@@ -195,7 +225,7 @@ export default function TransactionsPage() {
               <span className="tabular-nums">{formatRupiah(subtotal)}</span>
             </div>
             {cart.map((c) => {
-              const p = getProductById(c.productId);
+              const p = (products ?? []).find((prod) => prod.id === c.productId);
               return p ? (
                 <div key={c.productId} className="flex justify-between text-xs text-muted-foreground">
                   <span>
@@ -216,8 +246,8 @@ export default function TransactionsPage() {
             </p>
           </CardContent>
           <CardFooter>
-            <Button className="w-full" onClick={saveTransaction} disabled={cart.length === 0}>
-              Simpan Transaksi
+            <Button className="w-full" onClick={saveTransaction} disabled={cart.length === 0 || saving}>
+              {saving ? "Menyimpan..." : "Simpan Transaksi"}
             </Button>
           </CardFooter>
         </Card>

@@ -7,7 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Check, CircleNotch, Hourglass, Star } from "@phosphor-icons/react";
 import { formatNumber } from "@/lib/format";
-import { getGrowthStages } from "@/lib/demo-data";
+import { fetchGrowth } from "@/lib/datara";
+import { useApi } from "@/hooks/use-api";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
 const stageMeta: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
@@ -18,7 +21,8 @@ const stageMeta: Record<string, { label: string; className: string; icon: React.
 };
 
 export default function GrowthPage() {
-  const stages = React.useMemo(() => getGrowthStages(), []);
+  const { data, loading, error } = useApi(fetchGrowth);
+  const stages = data?.stages ?? [];
 
   return (
     <>
@@ -27,6 +31,17 @@ export default function GrowthPage() {
         description="Evaluasi perkembangan usaha berdasarkan indikator bisnis dan langkah menuju target pertumbuhan berikutnya (FR-011, FR-012)."
       />
 
+      {loading ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-40 w-full" />
+          ))}
+        </div>
+      ) : error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : (
       <div className="grid gap-4 lg:grid-cols-2">
         {stages.map((s, i) => {
           const meta = stageMeta[s.status] ?? stageMeta.upcoming;
@@ -70,6 +85,7 @@ export default function GrowthPage() {
           );
         })}
       </div>
+      )}
     </>
   );
 }

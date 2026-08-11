@@ -89,6 +89,7 @@ export interface Decision {
 }
 
 export interface PricingRecommendation {
+  id: number;
   product_id: number;
   name: string;
   sku: string;
@@ -101,6 +102,7 @@ export interface PricingRecommendation {
 }
 
 export interface RestockRecommendation {
+  id: number;
   product_id: number;
   name: string;
   sku: string;
@@ -115,6 +117,7 @@ export interface RestockRecommendation {
 export interface BusinessHealth {
   score: number;
   label: string;
+  status?: "SEHAT" | "PERLU_PERHATIAN" | "BERISIKO" | "INSUFFICIENT_DATA";
 }
 
 export interface DashboardMetrics {

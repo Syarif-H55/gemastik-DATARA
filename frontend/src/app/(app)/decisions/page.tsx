@@ -6,7 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { TrendDown, TrendUp, Minus } from "@phosphor-icons/react";
 import { formatRupiah, formatDate } from "@/lib/format";
-import { demoDecisions } from "@/lib/demo-data";
+import { fetchDecisions } from "@/lib/datara";
+import { useApi } from "@/hooks/use-api";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 
 const statusMeta: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
@@ -17,6 +20,8 @@ const statusMeta: Record<string, { label: string; className: string; icon: React
 };
 
 export default function DecisionsPage() {
+  const { data: decisions, loading, error } = useApi(fetchDecisions);
+
   return (
     <>
       <PageHeader
@@ -24,8 +29,25 @@ export default function DecisionsPage() {
         description="Rekap rekomendasi yang Anda terapkan beserta perkembangan indikator bisnis setelahnya (FR-009, FR-010)."
       />
 
+      {loading ? (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-48 w-full" />
+          ))}
+        </div>
+      ) : error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : (decisions ?? []).length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            Belum ada keputusan yang diterapkan. Terapkan rekomendasi dari Smart Pricing / Smart Restock terlebih dahulu.
+          </CardContent>
+        </Card>
+      ) : (
       <div className="space-y-4">
-        {demoDecisions.map((d) => {
+        {(decisions ?? []).map((d) => {
           const meta = statusMeta[d.status] ?? statusMeta.flat;
           const deltas = {
             revenue: d.metrics_after.revenue - d.metrics_before.revenue,
@@ -80,6 +102,7 @@ export default function DecisionsPage() {
           );
         })}
       </div>
+      )}
     </>
   );
 }

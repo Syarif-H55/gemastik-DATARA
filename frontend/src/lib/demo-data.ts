@@ -85,6 +85,7 @@ export function getPricingRecommendations(targetMarginPercent = TARGET_MARGIN * 
       ? `HPP Rp ${p.hpp.toLocaleString("id-ID")} membuat margin aktual ${actualMargin.toFixed(0)}% di bawah target ${targetMarginPercent}%. Naikkan harga ke Rp ${recommendedPrice.toLocaleString("id-ID")} untuk mencapai margin ~${targetMarginPercent}%.`
       : `Harga saat ini sudah menghasilkan margin ${actualMargin.toFixed(0)}% (target ${targetMarginPercent}%). Tidak perlu perubahan harga.`;
     return {
+      id: p.id,
       product_id: p.id,
       name: p.name,
       sku: p.sku,
@@ -118,6 +119,7 @@ export function getRestockRecommendations(leadTimeDays = LEAD_TIME_DAYS): Restoc
           : `Stok ${p.stock} sehat dengan ${basis}, cukup untuk ~${daysOfSupply.toFixed(0)} hari. Belum perlu restock.`;
 
     return {
+      id: p.id,
       product_id: p.id,
       name: p.name,
       sku: p.sku,

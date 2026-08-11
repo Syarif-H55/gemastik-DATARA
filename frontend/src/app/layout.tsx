@@ -20,8 +20,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "KIRA — Dari Data Menjadi Keputusan",
-    template: "%s · KIRA",
+    default: "DATARA — Data Analitik dan Rekomendasi untuk Pertumbuhan UMKM",
+    template: "%s · DATARA",
   },
   description:
     "Sistem Pendukung Keputusan untuk UMKM Food & Beverage: olah penjualan, HPP, biaya operasional, dan stok menjadi indikator bisnis serta rekomendasi yang terjelaskan.",

@@ -7,15 +7,19 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, ReferenceLine } from "recharts";
-import { getProductForecasts } from "@/lib/demo-data";
+import { fetchForecasts } from "@/lib/datara";
+import { useApi } from "@/hooks/use-api";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatNumber } from "@/lib/format";
 import { trendBadge, trendConfig } from "./chart-utils";
 
 export default function ForecastingPage() {
-  const forecasts = React.useMemo(() => getProductForecasts(), []);
-  const [productId, setProductId] = React.useState(forecasts[0]?.product_id ?? 0);
+  const { data, loading, error } = useApi(fetchForecasts);
+  const forecasts = data ?? [];
+  const [productId, setProductId] = React.useState<number | null>(null);
 
-  const selected = forecasts.find((f) => f.product_id === productId) ?? forecasts[0];
+  const selected = forecasts.find((f) => f.product_id === productId) ?? forecasts[0] ?? null;
 
   return (
     <>
@@ -24,13 +28,25 @@ export default function ForecastingPage() {
         description="Prediksi penjualan berdasarkan riwayat transaksi — menjadi dasar perencanaan persediaan dan Smart Restock."
       />
 
+      {loading ? (
+        <Card>
+          <CardContent className="space-y-6 py-6">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-72 w-full" />
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : (
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <CardTitle>Forecast per Produk</CardTitle>
             <CardDescription>Pilih produk untuk melihat estimasi penjualan periode berikutnya</CardDescription>
           </div>
-          <Select value={String(productId)} onValueChange={(v) => setProductId(Number(v))}>
+          <Select value={String(selected?.product_id ?? "")} onValueChange={(v) => setProductId(Number(v))}>
             <SelectTrigger className="w-56">
               <SelectValue />
             </SelectTrigger>
@@ -106,6 +122,7 @@ export default function ForecastingPage() {
           )}
         </CardContent>
       </Card>
+      )}
     </>
   );
 }

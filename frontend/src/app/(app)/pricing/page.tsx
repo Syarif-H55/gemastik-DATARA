@@ -9,18 +9,37 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { ArrowsDownUp } from "@phosphor-icons/react";
 import { formatRupiah, formatPercent } from "@/lib/format";
-import { getPricingRecommendations } from "@/lib/demo-data";
+import { fetchPricingRecommendations, applyPricingRecommendation } from "@/lib/datara";
+import { useApi } from "@/hooks/use-api";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 export default function PricingPage() {
   const [targetMargin, setTargetMargin] = React.useState(30);
+  const { data, loading, error } = useApi(() => fetchPricingRecommendations(targetMargin), [targetMargin]);
+  const [applying, setApplying] = React.useState(false);
 
-  const recommendations = React.useMemo(() => getPricingRecommendations(targetMargin), [targetMargin]);
+  const recommendations = data ?? [];
 
-  const applyAll = () => {
+  const applyAll = async () => {
     const changes = recommendations.filter((r) => r.recommended_price !== r.current_price);
-    toast.success(`Menerapkan harga baru untuk ${changes.length} produk`);
+    if (changes.length === 0) {
+      toast("Tidak ada produk yang perlu penyesuaian harga.");
+      return;
+    }
+    setApplying(true);
+    try {
+      for (const r of changes) {
+        await applyPricingRecommendation(r.id);
+      }
+      toast.success(`Menerapkan harga baru untuk ${changes.length} produk`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal menerapkan harga.");
+    } finally {
+      setApplying(false);
+    }
   };
 
   return (
@@ -51,10 +70,25 @@ export default function PricingPage() {
               Harga rekomendasi = HPP ÷ (1 − target margin). Dibulatkan ke kelipatan Rp 500.
             </p>
           </div>
-          <Button onClick={applyAll}>Terapkan Semua Rekomendasi</Button>
+          <Button onClick={applyAll} disabled={applying}>
+            {applying ? "Menerapkan..." : "Terapkan Semua Rekomendasi"}
+          </Button>
         </CardContent>
       </Card>
 
+      {loading ? (
+        <Card>
+          <CardContent className="space-y-3 py-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : (
       <Card>
         <CardHeader>
           <CardTitle>Rekomendasi Harga</CardTitle>
@@ -73,7 +107,14 @@ export default function PricingPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recommendations.map((r) => {
+              {recommendations.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    Belum ada data produk.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                recommendations.map((r) => {
                 const change = r.recommended_price !== r.current_price;
                 return (
                   <TableRow key={r.product_id} className={cn(change && "bg-primary/5")}>
@@ -98,7 +139,8 @@ export default function PricingPage() {
                     <TableCell className="max-w-sm text-sm text-muted-foreground">{r.reasoning}</TableCell>
                   </TableRow>
                 );
-              })}
+              })
+              )}
             </TableBody>
           </Table>
           <div className="mt-4 flex items-center gap-2 pt-2">
@@ -109,6 +151,7 @@ export default function PricingPage() {
           </div>
         </CardContent>
       </Card>
+      )}
     </>
   );
 }

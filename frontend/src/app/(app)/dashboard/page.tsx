@@ -5,25 +5,14 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ChartContainer, ChartLegend, ChartLegendContent, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
-import { TrendUp, Wallet, Receipt, ChartPieSlice } from "@/components/kira-icons";
+import { TrendUp, Wallet, Receipt, ChartPieSlice } from "@/components/datara-icons";
 import { formatRupiah, formatPercent } from "@/lib/format";
-import { getDashboardMetrics } from "@/lib/demo-data";
+import { fetchDashboard } from "@/lib/datara";
+import { useApi } from "@/hooks/use-api";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
-
-const data = getDashboardMetrics();
-
-const metrics = [
-  { label: "Omzet", value: formatRupiah(data.total_revenue), icon: TrendUp, hint: "Total penjualan periode berjalan" },
-  { label: "Laba", value: formatRupiah(data.total_profit), icon: TrendUp, hint: "Pendapatan dikurangi HPP & biaya" },
-  { label: "HPP", value: formatRupiah(data.total_cogs), icon: Wallet, hint: "Harga pokok penjualan" },
-  { label: "Margin Rata-rata", value: formatPercent(data.avg_margin_percent), icon: ChartPieSlice, hint: "Margin kotor rata-rata" },
-];
-
-const activity = [
-  { label: "Transaksi", value: data.transactions_count, icon: Receipt, hint: "Jumlah transaksi" },
-  { label: "Produk terjual", value: data.products_sold, icon: TrendUp, hint: "Total item terjual" },
-];
 
 const trendConfig: ChartConfig = {
   revenue: { label: "Omzet", color: "var(--chart-1)" },
@@ -35,6 +24,46 @@ const categoryConfig: ChartConfig = {
 };
 
 export default function DashboardPage() {
+  const { data, loading, error } = useApi(fetchDashboard);
+
+  const periodLabel = new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric" }).format(new Date());
+
+  if (loading) {
+    return (
+      <>
+        <PageHeader title="Business Dashboard" description="Ringkasan kesehatan bisnis dari data penjualan, HPP, dan biaya operasional." />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  if (error || !data) {
+    return (
+      <>
+        <PageHeader title="Business Dashboard" description="Ringkasan kesehatan bisnis dari data penjualan, HPP, dan biaya operasional." />
+        <Alert variant="destructive">
+          <AlertDescription>{error ?? "Data tidak tersedia."}</AlertDescription>
+        </Alert>
+      </>
+    );
+  }
+
+  const metrics = [
+    { label: "Omzet", value: formatRupiah(data.total_revenue), icon: TrendUp, hint: "Total penjualan 30 hari terakhir" },
+    { label: "Laba", value: formatRupiah(data.total_profit), icon: TrendUp, hint: "Pendapatan dikurangi HPP & biaya" },
+    { label: "HPP", value: formatRupiah(data.total_cogs), icon: Wallet, hint: "Harga pokok penjualan" },
+    { label: "Margin Rata-rata", value: formatPercent(data.avg_margin_percent), icon: ChartPieSlice, hint: "Margin kotor rata-rata" },
+  ];
+
+  const activity = [
+    { label: "Transaksi", value: data.transactions_count, icon: Receipt, hint: "Jumlah transaksi 30 hari terakhir" },
+    { label: "Produk terjual", value: data.products_sold, icon: TrendUp, hint: "Total item terjual" },
+  ];
+
   return (
     <>
       <PageHeader
@@ -42,7 +71,7 @@ export default function DashboardPage() {
         description="Ringkasan kesehatan bisnis dari data penjualan, HPP, dan biaya operasional."
         actions={
           <div className="flex items-center gap-2">
-            <Badge variant="secondary">Periode: Juni 2025</Badge>
+            <Badge variant="secondary">Periode: {periodLabel}</Badge>
             <Badge className="bg-emerald-600 text-white">{data.business_health.label}</Badge>
           </div>
         }

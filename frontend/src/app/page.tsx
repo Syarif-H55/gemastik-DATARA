@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChartDonut } from "@/components/kira-icons";
+import { ChartDonut } from "@/components/datara-icons";
 
 export default function Home() {
   return (
@@ -9,7 +9,7 @@ export default function Home() {
           <ChartDonut className="size-6" />
         </span>
         <div className="text-left">
-          <p className="text-lg font-semibold tracking-tight">KIRA</p>
+          <p className="text-lg font-semibold tracking-tight">DATARA</p>
           <p className="text-sm text-muted-foreground">Dari Data Menjadi Keputusan</p>
         </div>
       </div>

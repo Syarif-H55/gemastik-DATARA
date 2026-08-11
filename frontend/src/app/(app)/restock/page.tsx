@@ -9,7 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { WarningCircle, Package } from "@phosphor-icons/react";
 import { formatNumber } from "@/lib/format";
-import { getRestockRecommendations, getProductForecasts } from "@/lib/demo-data";
+import { fetchRestockRecommendations, fetchForecasts, applyRestockRecommendation } from "@/lib/datara";
+import { useApi } from "@/hooks/use-api";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -20,15 +23,27 @@ const urgencyMap: Record<string, { label: string; className: string }> = {
 };
 
 export default function RestockPage() {
-  const recommendations = React.useMemo(() => getRestockRecommendations(), []);
-  const forecasts = React.useMemo(() => new Map(getProductForecasts().map((f) => [f.product_id, f])), []);
+  const { data: recs, loading, error } = useApi(fetchRestockRecommendations);
+  const { data: forecastData } = useApi(fetchForecasts);
   const [filter, setFilter] = React.useState<string>("all");
+  const [applyingId, setApplyingId] = React.useState<number | null>(null);
+
+  const recommendations = recs ?? [];
+  const forecasts = React.useMemo(() => new Map((forecastData ?? []).map((f) => [f.product_id, f])), [forecastData]);
 
   const filtered = filter === "all" ? recommendations : recommendations.filter((r) => r.urgency === filter);
   const criticalCount = recommendations.filter((r) => r.urgency === "critical").length;
 
-  const applyRestock = (r: (typeof recommendations)[number]) => {
-    toast.success(`Restock ${r.name} sebanyak ${r.suggested_quantity} unit direkomendasikan`);
+  const applyRestock = async (r: (typeof recommendations)[number]) => {
+    setApplyingId(r.id);
+    try {
+      await applyRestockRecommendation(r.id);
+      toast.success(`Restock ${r.name} sebanyak ${r.suggested_quantity} unit dilakukan`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal melakukan restock.");
+    } finally {
+      setApplyingId(null);
+    }
   };
 
   return (
@@ -45,6 +60,19 @@ export default function RestockPage() {
         }
       />
 
+      {loading ? (
+        <Card>
+          <CardContent className="space-y-3 py-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-12 w-full" />
+            ))}
+          </CardContent>
+        </Card>
+      ) : error ? (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : (
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -103,9 +131,9 @@ export default function RestockPage() {
                     <TableCell className="max-w-sm text-sm text-muted-foreground">{r.reasoning}</TableCell>
                     <TableCell>
                       {r.suggested_quantity > 0 && (
-                        <Button size="sm" variant="outline" onClick={() => applyRestock(r)}>
+                        <Button size="sm" variant="outline" onClick={() => applyRestock(r)} disabled={applyingId === r.id}>
                           <Package className="size-4" />
-                          Restock
+                          {applyingId === r.id ? "..." : "Restock"}
                         </Button>
                       )}
                     </TableCell>
@@ -119,6 +147,7 @@ export default function RestockPage() {
           </p>
         </CardContent>
       </Card>
+      )}
     </>
   );
 }
