@@ -40,6 +40,17 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 24  # 1 hari
 
+    # LLM / AI Business Assistant (provider-agnostic; saat ini Gemini via REST).
+    # Tanpa API key, endpoint /ai/chat mengembalikan error 502 yang jelas.
+    llm_provider: str = "gemini"
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.6-flash"
+
+    # Google OAuth (Sign in with Google via ID token). Wajib diisi agar
+    # endpoint POST /auth/google aktif. Client ID dibuat di Google Cloud
+    # Console → Credentials → OAuth 2.0 Client (type: Web application).
+    google_client_id: str = ""
+
     @property
     def resolved_database_url(self) -> str:
         if self.database_url:

@@ -1,9 +1,11 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Check, CircleNotch, Hourglass, Star } from "@phosphor-icons/react";
 import { formatNumber } from "@/lib/format";
@@ -78,7 +80,30 @@ export default function GrowthPage() {
                     <Check className="size-4" /> Target tercapai
                   </p>
                 ) : (
-                  <p className="text-sm text-muted-foreground">Langkah berikutnya: {s.next_step}</p>
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Langkah berikutnya: {s.next_step}</p>
+                    {s.status === "current" && (
+                      <div className="rounded-md border border-primary/20 bg-primary/5 p-3">
+                        <p className="text-xs font-medium">
+                          Target belum tercapai — selisih{" "}
+                          {formatNumber(Math.max(0, s.metric_1_target - s.metric_1_value))} dari target{" "}
+                          {formatNumber(s.metric_1_target)}
+                        </p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Terapkan rekomendasi Smart Pricing untuk mengejar margin, atau pastikan ketersediaan stok
+                          melalui Smart Restock, lalu pantau dampaknya di Keputusan & Monitoring.
+                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Button asChild size="sm">
+                            <Link href="/pricing">Optimasi Smart Pricing</Link>
+                          </Button>
+                          <Button asChild size="sm" variant="outline">
+                            <Link href="/restock">Cek Smart Restock</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>

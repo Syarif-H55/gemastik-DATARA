@@ -49,8 +49,8 @@ def test_unknown_route_returns_structured_error(client: TestClient) -> None:
 
 
 def test_canonical_api_structure(client: TestClient) -> None:
-    """Health di /api/* (bukan /api/v1); business router dipasang di /api/v1."""
+    """Health check kanonik di /api/*; business router dipasang di /api/v1."""
     paths = set(app.openapi()["paths"])
     assert "/api/health" in paths
     assert "/api/health/db" in paths
-    assert "/api/v1/health" not in paths
+    assert "/api/v1/health" in paths

@@ -482,7 +482,7 @@ Brand harus menggunakan:
 DATARA
 ```
 
-bukan KIRA.
+bukan KIRA (sudah direbranding menjadi DATARA).
 
 ---
 
@@ -1624,7 +1624,7 @@ Bukan memaksakan seluruh tabel desktop ke layar kecil.
 5. Gunakan Phosphor Icons.
 6. Gunakan Recharts untuk data visualization.
 7. Gunakan `PageHeader`, `EmptyState`, dan `ModuleBadge` sebagai shared component jika sesuai.
-8. Server Component menggunakan icon wrapper `kira-icons.tsx`.
+8. Server Component menggunakan icon wrapper `datara-icons.tsx`.
 9. Client Component dapat mengimpor Phosphor Icons secara langsung.
 10. Jangan membuat duplicate component jika shared component sudah tersedia.
 11. Gunakan `src/lib/format.ts` untuk formatting.
@@ -1634,7 +1634,7 @@ Bukan memaksakan seluruh tabel desktop ke layar kecil.
 15. Jangan mempertahankan business calculation authoritative di frontend.
 16. Mock data hanya untuk development/demo sampai API terhubung.
 17. Setelah integrasi backend, UI harus menangani loading, empty, error, dan success state.
-18. Rebranding KIRA → DATARA harus konsisten pada seluruh UI.
+18. Rebranding KIRA → DATARA sudah konsisten pada seluruh UI.
 19. Produk menggunakan satu actor utama: Pemilik UMKM.
 20. UI tidak boleh bergantung pada role `staff` sebagai actor produk.
 
@@ -1704,19 +1704,13 @@ Dokumen frontend juga mencatat bahwa sebagian besar halaman saat ini menggunakan
 
 ## 34.1 Rebranding
 
-Semua penggunaan:
-
-```text
-KIRA
-```
-
-harus diganti menjadi:
+Rebranding dari KIRA ke DATARA sudah selesai:
 
 ```text
 DATARA
 ```
 
-termasuk metadata, landing page, login, AppBrand, dan konfigurasi terkait. fileciteturn8file5L1-L12
+dipakai pada metadata, landing page, login, AppBrand, dan konfigurasi terkait. Icon wrapper diberi nama `datara-icons.tsx`.
 
 ## 34.2 Role
 
@@ -1780,7 +1774,7 @@ Target usability yang tercantum pada PRD adalah minimal 80% pengguna uji dapat m
 19. Frontend menggunakan API sebagai sumber data production.
 20. Business calculation authoritative dilakukan backend.
 21. Shared components digunakan untuk menjaga konsistensi.
-22. Rebranding KIRA → DATARA harus tuntas.
+22. Rebranding KIRA → DATARA sudah tuntas di kode.
 23. UI tidak menampilkan role Staff sebagai actor produk.
 24. Visual design memprioritaskan clarity daripada dekorasi.
 25. UX harus membantu user bergerak dari data menuju insight, recommendation, decision, dan monitoring.

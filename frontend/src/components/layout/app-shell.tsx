@@ -2,7 +2,6 @@
 
 import { AppSidebar, type NavItem } from "@/components/layout/app-sidebar";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 import * as React from "react";
@@ -27,8 +26,9 @@ export function AppShell({
       <AppSidebar brand={brand} groupLabel={roleLabel} items={items} footer={footer} />
       <SidebarInset className="min-h-svh">
         <header className="flex shrink-0 items-center gap-2 border-b px-4 h-14">
-          <SidebarTrigger className="-ml-1" />
-          <Separator orientation="vertical" className="mr-2 h-4" />
+          {/* Trigger hanya tampil di mobile — di desktop toggle ada di dalam
+              sidebar (header brand), supaya tombol tidak dobel. */}
+          <SidebarTrigger className="-ml-1 md:hidden" />
           <div className="flex-1" />
           <ThemeToggle />
         </header>

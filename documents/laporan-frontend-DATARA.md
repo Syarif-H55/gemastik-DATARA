@@ -20,7 +20,7 @@
 | **Status saat laporan ini dibuat** | Frontend demo selesai dan dapat dijalankan (`npm run dev`). Backend FastAPI **belum dibuat**. |
 
 ### Catatan penting: rebranding KIRA → DATARA
-Nama "KIRA — Dari Data Menjadi Keputusan" masih muncul di beberapa bagian frontend (metadata, landing page, halaman login, dan brand sidebar), sementara PRD sudah berganti nama menjadi **DATARA**. **Rebranding di kode belum selesai** — detail ada di Bagian 13.
+Nama produk sudah direbranding menjadi **DATARA** di seluruh frontend (metadata, landing page, halaman login, dan brand sidebar). Icon wrapper diberi nama `datara-icons.tsx`.
 
 ---
 
@@ -79,7 +79,7 @@ frontend/
 └── src/
     ├── app/
     │   ├── layout.tsx         ← Root layout: ThemeProvider + TooltipProvider + Toaster
-    │   ├── page.tsx           ← Landing page (KIRA)
+    │   ├── page.tsx           ← Landing page (DATARA)
     │   ├── globals.css        ← Tailwind v4 + CSS variables (oklch, light/dark)
     │   ├── login/
     │   │   └── page.tsx       ← Form login (belum terhubung backend)
@@ -118,12 +118,12 @@ frontend/
 ## 5. Routing & Layout
 
 ### 5.1 Root layout (`src/app/layout.tsx`)
-- Meta default: title `"KIRA — Dari Data Menjadi Keputusan"`, template `"%s · KIRA"`.
+- Meta default: title `"DATARA — Data Analitik dan Rekomendasi untuk Pertumbuhan UMKM"`, template `"%s · DATARA"`.
 - Menyediakan `ThemeProvider` (default theme `light`, `enableSystem`), `TooltipProvider`, dan `Toaster` (sonner, `richColors`, `closeButton`).
 - `lang="id"`, font: `--font-geist-sans`, `--font-mono` (Geist Mono), `--font-mono` di-override JetBrains Mono.
 
 ### 5.2 Landing page (`/`, `src/app/page.tsx`) — Server Component
-- Hero singkat KIRA + dua aksi: **Masuk Aplikasi** (`/login`) dan **Lihat Demo** (`/dashboard`).
+- Hero singkat DATARA + dua aksi: **Masuk Aplikasi** (`/login`) dan **Lihat Demo** (`/dashboard`).
 
 ### 5.3 Login (`/login`, `src/app/login/page.tsx`) — Client Component
 - Form email + kata sandi, tombol "Masuk" mengarah ke `/dashboard` (tanpa autentikasi nyata).
@@ -131,7 +131,7 @@ frontend/
 
 ### 5.4 App layout (`src/app/(app)/layout.tsx`) — Server Component
 - Membungkus semua halaman fitur dengan `AppShell`.
-- `AppBrand`: logo + teks **KIRA** (mengarah ke `/dashboard`).
+- `AppBrand`: logo + teks **DATARA** (mengarah ke `/dashboard`).
 - `AppFooter`: dropdown akun dengan avatar "PK" — label *Pemilik UMKM*, sub-label *owner*, menu **Keluar** (belum berfungsi).
 
 ### 5.5 AppShell (`src/components/layout/app-shell.tsx`)
@@ -154,7 +154,7 @@ frontend/
 | Keputusan & Monitoring | `/decisions` | ClipboardText |
 | Roadmap Pertumbuhan | `/growth` | Signpost |
 
-> Konvensi penting: file `"use client"` boleh mengimpor langsung dari `@phosphor-icons/react`, sedangkan Server Component **harus** memakai `src/components/kira-icons.tsx` (client wrapper). Nama export Phosphor sering berbeda dari tebakan (contoh: `TrendUp`, `SignOut`, `ArrowsDownUp`, `WarningCircle`).
+> Konvensi penting: file `"use client"` boleh mengimpor langsung dari `@phosphor-icons/react`, sedangkan Server Component **harus** memakai `src/components/datara-icons.tsx` (client wrapper). Nama export Phosphor sering berbeda dari tebakan (contoh: `TrendUp`, `SignOut`, `ArrowsDownUp`, `WarningCircle`).
 
 ---
 
@@ -336,7 +336,7 @@ Semua memakai locale `id-ID`:
 `alert`, `alert-dialog`, `avatar`, `badge`, `button`, `card`, `chart`, `dialog`, `dropdown-menu`, `input`, `label`, `progress`, `select`, `separator`, `sheet`, `sidebar`, `skeleton`, `sonner`, `table`, `tabs`, `textarea`, `tooltip`.
 
 ### 11.2 Komponen internal
-- `kira-icons.tsx` — re-export client untuk: `CashRegister, ChartDonut, ChartPieSlice, Receipt, SignOut, ShoppingCart, TrendUp, Wallet, Warehouse`. **Wajib dipakai di Server Component.**
+- `datara-icons.tsx` — re-export client untuk: `CashRegister, ChartDonut, ChartPieSlice, Receipt, SignOut, ShoppingCart, TrendUp, Wallet, Warehouse`. **Wajib dipakai di Server Component.**
 - `page-header.tsx` — `PageHeader` (title/description/actions), `EmptyState`, `ModuleBadge`.
 - `app-shell.tsx`, `app-sidebar.tsx` — kerangka aplikasi (Bagian 5).
 - `theme-provider.tsx`, `theme-toggle.tsx` — mode terang/gelap (ikon Sun/MoonStars).
@@ -376,16 +376,10 @@ Semua memakai locale `id-ID`:
 
 ## 13. Catatan Penting untuk Developer / ChatGPT
 
-1. **Rebranding KIRA → DATARA belum tuntas.** Yang masih memakai "KIRA":
-   - `src/app/layout.tsx` — metadata `title`/`template`.
-   - `src/app/page.tsx` — brand hero + judul.
-   - `src/app/login/page.tsx` — brand.
-   - `src/app/(app)/layout.tsx` — `AppBrand`.
-   - `AGENTS.md` (root) masih menyebut KIRA.
-   - Direkomendasikan sinkronkan dengan tagline PRD DATARA *"Data Analitik dan Rekomendasi untuk Pertumbuhan UMKM"*.
+1. **Rebranding KIRA → DATARA sudah tuntas.** Semua branding (metadata, landing page, login, `AppBrand`, `AGENTS.md`) memakai **DATARA** dengan tagline PRD *"Data Analitik dan Rekomendasi untuk Pertumbuhan UMKM"*. Icon wrapper bernama `datara-icons.tsx`.
 2. **Role ganda**: `types.ts` masih mendefinisikan `Role = "owner" | "staff"` dan footer menampilkan sub-label "owner", padahal PRD v1.1–1.2 menetapkan **satu actor (Pemilik UMKM)**. Backend boleh menyediakan kolom role, tetapi frontend tidak boleh bergantung pada dua role.
 3. **Kontrak API harus konsisten dengan `types.ts`.** Sebelum men-scaffold backend, pastikan nama field JSON sesuai (snake_case seperti `selling_price`, `low_stock_threshold`, `predicted_units`, dst.) agar `api.ts` bekerja tanpa perubahan.
-4. **Konvensi icon**: Server Component tidak boleh mengimpor `@phosphor-icons/react` langsung — wajib lewat `kira-icons.tsx`. Nama export Phosphor perlu dicek bila build gagal (lihat AGENTS.md frontend).
+4. **Konvensi icon**: Server Component tidak boleh mengimpor `@phosphor-icons/react` langsung — wajib lewat `datara-icons.tsx`. Nama export Phosphor perlu dicek bila build gagal (lihat AGENTS.md frontend).
 5. **Konvensi Next.js 16**: `params`/`searchParams` adalah `Promise` (harus `await`); type helpers `PageProps`/`LayoutProps` tersedia global.
 6. **Verifikasi**: tidak ada test suite. Jalankan `npm run lint` dan `npm run build` setelah perubahan.
 7. **skema data penting**: SKU memakai prefix kategori `MIN`/`FOOD`/`SNK` yang juga berfungsi sebagai kategori (dipakai di filter & breakdown kategori).
@@ -417,7 +411,7 @@ frontend/src/app/(app)/decisions/page.tsx
 frontend/src/app/(app)/growth/page.tsx
 frontend/src/components/layout/app-shell.tsx
 frontend/src/components/layout/app-sidebar.tsx
-frontend/src/components/kira-icons.tsx
+frontend/src/components/datara-icons.tsx
 frontend/src/components/page-header.tsx
 frontend/src/components/theme-provider.tsx
 frontend/src/components/theme-toggle.tsx

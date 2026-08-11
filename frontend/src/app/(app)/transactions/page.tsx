@@ -9,9 +9,18 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Trash, ShoppingBag, Package } from "@phosphor-icons/react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Trash, ShoppingBag, Package, Plus } from "@phosphor-icons/react";
 import { formatRupiah } from "@/lib/format";
-import { fetchProducts, createTransaction } from "@/lib/datara";
+import { fetchProducts, createProduct, createTransaction } from "@/lib/datara";
 import { useApi } from "@/hooks/use-api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -23,11 +32,19 @@ type CartItem = {
 };
 
 export default function TransactionsPage() {
-  const { data: products, loading, error } = useApi(fetchProducts);
+  const [reloadKey, setReloadKey] = React.useState(0);
+  const { data: products, loading, error } = useApi(fetchProducts, [reloadKey]);
   const [cart, setCart] = React.useState<CartItem[]>([]);
   const [customer, setCustomer] = React.useState("");
   const [paymentInput, setPaymentInput] = React.useState("");
   const [saving, setSaving] = React.useState(false);
+  const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [creating, setCreating] = React.useState(false);
+  const [newName, setNewName] = React.useState("");
+  const [newPrice, setNewPrice] = React.useState("");
+  const [newHpp, setNewHpp] = React.useState("");
+  const [newStock, setNewStock] = React.useState("");
+  const [newSku, setNewSku] = React.useState("");
 
   const removeFromCart = (productId: number) => setCart((prev) => prev.filter((c) => c.productId !== productId));
 
@@ -40,6 +57,48 @@ export default function TransactionsPage() {
   };
 
   const subtotal = cart.reduce((sum, c) => sum + c.quantity * c.unitPrice, 0);
+
+  const createNewProduct = async () => {
+    if (!newName.trim()) {
+      toast.error("Nama produk wajib diisi");
+      return;
+    }
+    const price = Number(newPrice);
+    if (!Number.isFinite(price) || price <= 0) {
+      toast.error("Harga jual harus angka lebih dari 0");
+      return;
+    }
+    let hpp: number | undefined;
+    if (newHpp.trim() !== "") {
+      hpp = Number(newHpp);
+      if (!Number.isFinite(hpp) || hpp < 0) {
+        toast.error("HPP harus angka lebih dari atau sama dengan 0");
+        return;
+      }
+    }
+    setCreating(true);
+    try {
+      await createProduct({
+        name: newName.trim(),
+        sku: newSku.trim() || undefined,
+        selling_price: price,
+        current_stock: Number(newStock) > 0 ? Number(newStock) : 0,
+        hpp,
+      });
+      toast.success(`Produk "${newName.trim()}" berhasil ditambahkan.`);
+      setDialogOpen(false);
+      setNewName("");
+      setNewPrice("");
+      setNewHpp("");
+      setNewStock("");
+      setNewSku("");
+      setReloadKey((k) => k + 1);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Gagal menambahkan produk.");
+    } finally {
+      setCreating(false);
+    }
+  };
 
   const saveTransaction = async () => {
     if (cart.length === 0) {
@@ -79,9 +138,93 @@ export default function TransactionsPage() {
       <div className="grid gap-4 lg:grid-cols-[1fr_400px]">
         <div className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Pilih Produk</CardTitle>
-              <CardDescription>Klik produk untuk menambahkan ke keranjang</CardDescription>
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <CardTitle>Pilih Produk</CardTitle>
+                <CardDescription>Klik produk untuk menambahkan ke keranjang</CardDescription>
+              </div>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Plus className="size-4" />
+                    Tambah Produk
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Tambah Produk</DialogTitle>
+                    <DialogDescription>
+                      Produk baru langsung tersedia untuk dicatat dalam transaksi.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="newName">Nama Produk</Label>
+                      <Input
+                        id="newName"
+                        placeholder="Contoh: Es Cappuccino"
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="newSku">SKU (opsional)</Label>
+                      <Input
+                        id="newSku"
+                        placeholder="Contoh: MIN-005"
+                        value={newSku}
+                        onChange={(e) => setNewSku(e.target.value)}
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="newPrice">Harga Jual (Rp)</Label>
+                        <Input
+                          id="newPrice"
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={newPrice}
+                          onChange={(e) => setNewPrice(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="newHpp">HPP (Rp)</Label>
+                        <Input
+                          id="newHpp"
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={newHpp}
+                          onChange={(e) => setNewHpp(e.target.value)}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Biaya produksi per unit — dipakai untuk Smart Pricing.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="newStock">Stok Awal</Label>
+                        <Input
+                          id="newStock"
+                          type="number"
+                          min={0}
+                          placeholder="0"
+                          value={newStock}
+                          onChange={(e) => setNewStock(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={creating}>
+                      Batal
+                    </Button>
+                    <Button onClick={createNewProduct} disabled={creating}>
+                      {creating ? "Menyimpan..." : "Simpan Produk"}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </CardHeader>
             <CardContent>
               {loading ? (

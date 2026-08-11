@@ -27,3 +27,13 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+
+# Runtime logs
+uvicorn.log
+uvicorn.err.log
+next-dev.log
+next-dev.err.log

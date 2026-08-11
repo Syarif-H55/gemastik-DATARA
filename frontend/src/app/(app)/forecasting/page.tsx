@@ -12,14 +12,21 @@ import { useApi } from "@/hooks/use-api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { formatNumber } from "@/lib/format";
-import { trendBadge, trendConfig } from "./chart-utils";
+import { cn } from "@/lib/utils";
+import { aggregatePoints, scaleLabels, trendBadge, trendConfig, type ForecastScale } from "./chart-utils";
 
 export default function ForecastingPage() {
   const { data, loading, error } = useApi(fetchForecasts);
   const forecasts = data ?? [];
   const [productId, setProductId] = React.useState<number | null>(null);
+  const [scale, setScale] = React.useState<ForecastScale>("daily");
 
   const selected = forecasts.find((f) => f.product_id === productId) ?? forecasts[0] ?? null;
+
+  const chartPoints = React.useMemo(
+    () => (selected ? aggregatePoints(selected.points, scale) : []),
+    [selected, scale]
+  );
 
   return (
     <>
@@ -93,18 +100,51 @@ export default function ForecastingPage() {
               </div>
 
               <div>
+                <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-medium">Prediksi vs Aktual</p>
+                  <div className="flex items-center gap-1 rounded-md border bg-muted/40 p-1">
+                    {(["daily", "weekly", "monthly"] as const).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setScale(s)}
+                        className={cn(
+                          "rounded-sm px-2.5 py-1 text-xs font-medium transition-colors",
+                          scale === s
+                            ? "bg-background text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        {scaleLabels[s]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <ChartContainer config={trendConfig} className="aspect-auto h-72 w-full">
-                  <LineChart data={selected.points} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                    <XAxis dataKey="period" tickFormatter={(v: string) => new Date(v).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })} tickLine={false} axisLine={false} tickMargin={8} />
+                  <LineChart data={chartPoints} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <XAxis
+                      dataKey="period"
+                      tickFormatter={(v: string) =>
+                        new Date(v).toLocaleDateString(
+                          "id-ID",
+                          scale === "monthly"
+                            ? { month: "short", year: "numeric" }
+                            : { day: "2-digit", month: "short" }
+                        )
+                      }
+                      tickLine={false}
+                      axisLine={false}
+                      tickMargin={8}
+                    />
                     <YAxis tickLine={false} axisLine={false} tickMargin={8} />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Line type="monotone" dataKey="actual" stroke="var(--color-actual)" strokeWidth={2} dot={false} />
                     <Line type="monotone" dataKey="forecast" stroke="var(--color-forecast)" strokeWidth={2} strokeDasharray="4 4" dot={false} />
-                    <ReferenceLine x={selected.points[selected.points.length - 1]?.period} stroke="var(--border)" strokeDasharray="3 3" />
+                    <ReferenceLine x={chartPoints[chartPoints.length - 1]?.period} stroke="var(--border)" strokeDasharray="3 3" />
                   </LineChart>
                 </ChartContainer>
                 <p className="mt-2 text-center text-xs text-muted-foreground">
-                  Garis padat = penjualan aktual · garis putus-putus = prediksi
+                  Garis padat = penjualan aktual · garis putus-putus = prediksi · skala {scaleLabels[scale]}
                 </p>
               </div>
 

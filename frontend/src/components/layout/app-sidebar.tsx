@@ -9,6 +9,7 @@ import {
   ClipboardText,
   LineSegments,
   Package,
+  Robot,
   Signpost,
   ShoppingCart,
   Target,
@@ -72,7 +73,7 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>{footer}</SidebarFooter>
+      <SidebarFooter className="overflow-x-hidden">{footer}</SidebarFooter>
     </Sidebar>
   );
 }
@@ -86,4 +87,5 @@ export const navItems: NavItem[] = [
   { title: "Smart Restock", href: "/restock", icon: Package },
   { title: "Keputusan & Monitoring", href: "/decisions", icon: ClipboardText },
   { title: "Roadmap Pertumbuhan", href: "/growth", icon: Signpost },
+  { title: "AI Business Assistant", href: "/assistant", icon: Robot },
 ];

@@ -2,32 +2,82 @@
 
 import * as React from "react";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendDown, TrendUp, Minus } from "@phosphor-icons/react";
-import { formatRupiah, formatDate } from "@/lib/format";
-import { fetchDecisions } from "@/lib/datara";
-import { useApi } from "@/hooks/use-api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { CaretDown } from "@phosphor-icons/react";
+import { formatRupiah, formatDate, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useApi } from "@/hooks/use-api";
+import { fetchDecisions } from "@/lib/datara";
+import type { DecisionRecord } from "@/lib/types";
 
-const statusMeta: Record<string, { label: string; className: string; icon: React.ReactNode }> = {
-  improved: { label: "Membaik", className: "bg-emerald-600 text-white", icon: <TrendUp className="size-3" /> },
-  restricted: { label: "Terbatas", className: "bg-slate-500 text-white", icon: <Minus className="size-3" /> },
-  regressed: { label: "Menurun", className: "bg-red-600 text-white", icon: <TrendDown className="size-3" /> },
-  flat: { label: "Stabil", className: "bg-slate-500 text-white", icon: <Minus className="size-3" /> },
+type StatusDampak = "Membaik" | "Menurun" | "Stabil";
+
+const statusMeta: Record<DecisionRecord["status"], { label: StatusDampak; className: string }> = {
+  improved: { label: "Membaik", className: "bg-emerald-600 text-white" },
+  regressed: { label: "Menurun", className: "bg-red-600 text-white" },
+  flat: { label: "Stabil", className: "bg-slate-500 text-white" },
 };
+
+const tipeMeta: Record<DecisionRecord["type"], string> = {
+  pricing: "Smart Pricing",
+  restock: "Smart Restock",
+};
+
+function formatDelta(delta: number, format: (v: number) => string, unit = ""): string {
+  if (delta === 0) return "0 (Stabil)";
+  const label = delta > 0 ? "Naik" : "Turun";
+  return `${delta > 0 ? "+" : "-"}${format(Math.abs(delta))} ${unit}(${label})`;
+}
 
 export default function DecisionsPage() {
   const { data: decisions, loading, error } = useApi(fetchDecisions);
+  const [filterProduk, setFilterProduk] = React.useState("all");
+
+  const daftarProduk = React.useMemo(
+    () =>
+      Array.from(
+        new Set((decisions ?? []).map((d) => d.product_name).filter((n): n is string => Boolean(n))),
+      ).sort((a, b) => a.localeCompare(b, "id")),
+    [decisions],
+  );
+
+  const keputusanTampil =
+    filterProduk === "all"
+      ? (decisions ?? [])
+      : (decisions ?? []).filter((d) => d.product_name === filterProduk);
 
   return (
     <>
       <PageHeader
         title="Keputusan & Monitoring"
-        description="Rekap rekomendasi yang Anda terapkan beserta perkembangan indikator bisnis setelahnya (FR-009, FR-010)."
+        description="Rekap keputusan yang Anda terapkan beserta perkembangan indikator bisnis setelahnya (FR-009, FR-010)."
       />
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:w-64">
+          <select
+            value={filterProduk}
+            onChange={(e) => setFilterProduk(e.target.value)}
+            className="h-10 w-full appearance-none rounded-lg border bg-white pl-3 pr-9 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="all">Semua Produk</option>
+            {daftarProduk.map((nama) => (
+              <option key={nama} value={nama}>
+                {nama}
+              </option>
+            ))}
+          </select>
+          <CaretDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        </div>
+        {!loading && !error && (
+          <p className="text-sm text-muted-foreground">
+            {keputusanTampil.length} keputusan ditampilkan
+          </p>
+        )}
+      </div>
 
       {loading ? (
         <div className="space-y-4">
@@ -42,66 +92,92 @@ export default function DecisionsPage() {
       ) : (decisions ?? []).length === 0 ? (
         <Card>
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Belum ada keputusan yang diterapkan. Terapkan rekomendasi dari Smart Pricing / Smart Restock terlebih dahulu.
+            Belum ada keputusan yang diterapkan. Terapkan rekomendasi dari Smart Pricing / Smart
+            Restock terlebih dahulu.
+          </CardContent>
+        </Card>
+      ) : keputusanTampil.length === 0 ? (
+        <Card>
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            Tidak ada riwayat keputusan untuk produk ini.
           </CardContent>
         </Card>
       ) : (
-      <div className="space-y-4">
-        {(decisions ?? []).map((d) => {
-          const meta = statusMeta[d.status] ?? statusMeta.flat;
-          const deltas = {
-            revenue: d.metrics_after.revenue - d.metrics_before.revenue,
-            margin: d.metrics_after.margin - d.metrics_before.margin,
-            stock: d.metrics_after.stock - d.metrics_before.stock,
-          };
-          return (
-            <Card key={d.id}>
-              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={d.type === "pricing" ? "secondary" : "outline"}>
-                      {d.type === "pricing" ? "Smart Pricing" : "Smart Restock"}
-                    </Badge>
-                    <CardTitle className="text-base">{d.title}</CardTitle>
-                  </div>
-                  <CardDescription>{d.summary}</CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Diterapkan {formatDate(d.applied_at)}</span>
-                  <Badge className={meta.className}>{meta.label}</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="rounded-md border bg-muted/40 p-3 text-sm">
-                  <p className="font-medium">Alasan & Data Pendukung</p>
-                  <p className="mt-1 text-muted-foreground">{d.reasoning}</p>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {(
-                    [
-                      { key: "revenue", label: "Omzet", value: formatRupiah(d.metrics_after.revenue), before: d.metrics_before.revenue, delta: deltas.revenue },
-                      { key: "margin", label: "Margin", value: `${d.metrics_after.margin}%`, before: d.metrics_before.margin, delta: deltas.margin },
-                      { key: "stock", label: "Stok", value: `${d.metrics_after.stock}`, before: d.metrics_before.stock, delta: deltas.stock },
-                    ] as const
-                  ).map((m) => (
-                    <div key={m.key} className="rounded-md border p-3">
-                      <p className="text-xs text-muted-foreground">{m.label}</p>
-                      <p className="text-lg font-semibold tabular-nums">{m.value}</p>
-                      <p className={cn("text-xs", m.delta >= 0 ? "text-emerald-600" : "text-red-600")}>
-                        {m.delta >= 0 ? "+" : ""}
-                        {m.delta.toLocaleString("id-ID")} dibanding sebelum keputusan
-                      </p>
+        <div className="flex flex-col gap-4">
+          {keputusanTampil.map((d) => {
+            const meta = statusMeta[d.status] ?? statusMeta.flat;
+            const deltas = {
+              revenue: d.metrics_after.revenue - d.metrics_before.revenue,
+              margin: d.metrics_after.margin - d.metrics_before.margin,
+              stock: d.metrics_after.stock - d.metrics_before.stock,
+            };
+            return (
+              <Card key={d.id}>
+                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">
+                        {tipeMeta[d.type]}
+                      </Badge>
+                      <CardTitle className="text-base">{d.title}</CardTitle>
                     </div>
-                  ))}
-                </div>
+                    <p className="text-sm text-muted-foreground">
+                      {d.product_name ?? "—"} · Diterapkan {formatDate(d.applied_at)}
+                    </p>
+                  </div>
+                  <Badge className={meta.className}>{meta.label}</Badge>
+                </CardHeader>
 
-                <p className="text-sm text-muted-foreground">{d.outcome_notes}</p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg border border-blue-100/70 bg-blue-50/70 p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                      Alasan Keputusan
+                    </p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-slate-700">
+                      {d.reasoning || d.summary}
+                    </p>
+                    {d.outcome_notes ? (
+                      <p className="mt-2 border-t border-blue-100/70 pt-2 text-sm leading-relaxed text-slate-500">
+                        {d.outcome_notes}
+                      </p>
+                    ) : null}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3">
+                    {(
+                      [
+                        {
+                          label: "Omzet",
+                          nilai: formatRupiah(d.metrics_after.revenue),
+                          delta: formatDelta(deltas.revenue, (v) => formatRupiah(v)),
+                          deltaClass: deltas.revenue >= 0 ? "text-emerald-600" : "text-red-600",
+                        },
+                        {
+                          label: "Margin",
+                          nilai: `${d.metrics_after.margin}%`,
+                          delta: formatDelta(deltas.margin, (v) => `${v}%`),
+                          deltaClass: deltas.margin >= 0 ? "text-emerald-600" : "text-red-600",
+                        },
+                        {
+                          label: "Stok",
+                          nilai: formatNumber(d.metrics_after.stock),
+                          delta: formatDelta(deltas.stock, (v) => `${v} unit `),
+                          deltaClass: deltas.stock >= 0 ? "text-emerald-600" : "text-red-600",
+                        },
+                      ] as const
+                    ).map((m) => (
+                      <div key={m.label} className="rounded-md border bg-card p-3">
+                        <p className="text-xs text-muted-foreground">{m.label}</p>
+                        <p className="mt-0.5 text-lg font-bold tabular-nums">{m.nilai}</p>
+                        <p className={cn("mt-0.5 text-xs font-medium", m.deltaClass)}>{m.delta}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </>
   );

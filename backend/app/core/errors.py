@@ -43,3 +43,8 @@ class NotFoundError(AppError):
 class ConflictError(AppError):
     status_code = 409
     message = "Resource sudah ada atau konflik dengan data yang ada."
+
+
+class LLMUnavailableError(AppError):
+    status_code = 502
+    message = "Layanan AI tidak tersedia."

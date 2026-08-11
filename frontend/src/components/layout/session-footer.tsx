@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { SignOut } from "@/components/datara-icons";
 import { clearSession, getSessionUser } from "@/lib/auth";
+import { cn } from "@/lib/utils";
 
 export function SessionFooter() {
   const router = useRouter();
@@ -29,13 +30,32 @@ export function SessionFooter() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start gap-2 px-2">
-          <Avatar className="size-7">
+        <Button
+          variant="ghost"
+          className={cn(
+            "w-full justify-start gap-2 px-2",
+            // Saat sidebar terlipat: teks disembunyikan (transisi halus),
+            // avatar tetap terlihat dan dipusatkan, padding/gap dihilangkan
+            // agar tidak meluber melewati lebar sidebar (48px).
+            "group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0"
+          )}
+        >
+          <Avatar className="size-7 shrink-0">
             <AvatarFallback className="text-xs">{initials}</AvatarFallback>
           </Avatar>
-          <span className="flex-1 text-left text-sm">
-            <span className="block font-medium leading-tight">{user?.name ?? "Pemilik UMKM"}</span>
-            <span className="block text-xs text-muted-foreground">{user?.email ?? "owner"}</span>
+          <span
+            className={cn(
+              "min-w-0 flex-1 overflow-hidden text-left text-sm",
+              "transition-[width,opacity] duration-200 ease-linear",
+              "group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:grow-0 group-data-[collapsible=icon]:opacity-0"
+            )}
+          >
+            <span className="block truncate font-medium leading-tight">
+              {user?.name ?? "Pemilik UMKM"}
+            </span>
+            <span className="block truncate text-xs text-muted-foreground">
+              {user?.email ?? "owner"}
+            </span>
           </span>
         </Button>
       </DropdownMenuTrigger>

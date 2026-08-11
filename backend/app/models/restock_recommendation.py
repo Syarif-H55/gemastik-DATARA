@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -20,6 +20,7 @@ class RestockRecommendation(Base):
     safety_days: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
     recommended_quantity: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
     reason_code: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[RecommendationStatus] = mapped_column(
         Enum(RecommendationStatus, native_enum=True), nullable=False, default=RecommendationStatus.PENDING
     )

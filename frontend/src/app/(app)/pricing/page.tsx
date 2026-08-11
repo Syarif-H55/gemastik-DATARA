@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -22,9 +23,9 @@ export default function PricingPage() {
   const [applying, setApplying] = React.useState(false);
 
   const recommendations = data ?? [];
+  const changes = recommendations.filter((r) => r.recommended_price !== r.current_price);
 
   const applyAll = async () => {
-    const changes = recommendations.filter((r) => r.recommended_price !== r.current_price);
     if (changes.length === 0) {
       toast("Tidak ada produk yang perlu penyesuaian harga.");
       return;
@@ -95,48 +96,66 @@ export default function PricingPage() {
           <CardDescription>Target margin {targetMargin}% — produk dengan harga perlu penyesuaian ditandai.</CardDescription>
         </CardHeader>
         <CardContent>
+          {changes.length > 0 && (
+            <div className="mb-4 flex flex-col gap-3 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+              <p>
+                <span className="font-medium">{changes.length} produk perlu penyesuaian harga</span>{" "}
+                — terapkan rekomendasi agar target margin tercapai dan roadmap pertumbuhan tetap berjalan.
+              </p>
+              <Button asChild size="sm" variant="outline">
+                <Link href="/growth">Lihat Roadmap Pertumbuhan</Link>
+              </Button>
+            </div>
+          )}
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Produk</TableHead>
-                <TableHead className="text-right">Harga Saat Ini</TableHead>
                 <TableHead className="text-right">HPP</TableHead>
-                <TableHead className="text-right">Margin Aktual</TableHead>
+                <TableHead className="text-right">Harga Saat Ini</TableHead>
                 <TableHead className="text-right">Harga Rekomendasi</TableHead>
-                <TableHead>Alasan</TableHead>
+                <TableHead className="w-[45%]">Alasan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {recommendations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                     Belum ada data produk.
                   </TableCell>
                 </TableRow>
               ) : (
                 recommendations.map((r) => {
                 const change = r.recommended_price !== r.current_price;
+                const recommendedMargin = r.recommended_price > 0 ? ((r.recommended_price - r.hpp) / r.recommended_price) * 100 : 0;
                 return (
                   <TableRow key={r.product_id} className={cn(change && "bg-primary/5")}>
                     <TableCell>
                       <div className="font-medium">{r.name}</div>
                       <div className="text-xs text-muted-foreground">{r.sku}</div>
                     </TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatRupiah(r.current_price)}
-                    </TableCell>
                     <TableCell className="text-right tabular-nums">{formatRupiah(r.hpp)}</TableCell>
                     <TableCell className="text-right">
-                      <Badge variant={change ? "destructive" : "secondary"}>
-                        {formatPercent(r.actual_margin_percent, 0)}
-                      </Badge>
+                      <div className="tabular-nums">{formatRupiah(r.current_price)}</div>
+                      <div className="mt-1 flex items-center justify-end gap-1">
+                        <span className="text-xs text-muted-foreground">margin aktual</span>
+                        <Badge variant={change ? "destructive" : "secondary"}>
+                          {formatPercent(r.actual_margin_percent, 0)}
+                        </Badge>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <span className={cn("tabular-nums font-medium", change ? "text-primary" : "text-muted-foreground")}>
+                      <div className={cn("tabular-nums font-medium", change ? "text-primary" : "text-muted-foreground")}>
                         {formatRupiah(r.recommended_price)}
-                      </span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-end gap-1">
+                        <span className="text-xs text-muted-foreground">margin rekomendasi</span>
+                        <Badge className={change ? "bg-emerald-600 text-white" : "bg-muted text-muted-foreground"}>
+                          {formatPercent(recommendedMargin, 0)}
+                        </Badge>
+                      </div>
                     </TableCell>
-                    <TableCell className="max-w-sm text-sm text-muted-foreground">{r.reasoning}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{r.reasoning}</TableCell>
                   </TableRow>
                 );
               })

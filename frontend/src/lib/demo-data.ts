@@ -277,6 +277,8 @@ export const demoDecisions: DecisionRecord[] = [
   {
     id: 1,
     type: "pricing",
+    product_id: 1,
+    product_name: "Es Teh Manis",
     title: "Naikkan harga Es Teh Manis",
     summary: "Harga disesuaikan dari Rp 4.000 → Rp 5.000 untuk menutup HPP dan target margin.",
     reasoning: "Margin aktual di bawah target 30%. HPP Rp 1.500 membuat harga lama belum optimal.",
@@ -289,6 +291,8 @@ export const demoDecisions: DecisionRecord[] = [
   {
     id: 2,
     type: "restock",
+    product_id: 3,
+    product_name: "Kopi Susu Gula Aren",
     title: "Restock Kopi Susu Gula Aren",
     summary: "Penambahan stok 30 unit mengikuti forecast kenaikan permintaan.",
     reasoning: "Tren penjualan naik; stok diperkirakan habis dalam 4 hari.",
@@ -301,6 +305,8 @@ export const demoDecisions: DecisionRecord[] = [
   {
     id: 3,
     type: "pricing",
+    product_id: 5,
+    product_name: "Nasi Goreng Spesial",
     title: "Harga Nasi Goreng dinaikkan",
     summary: "Penyesuaian harga mengikuti perubahan HPP bahan baku.",
     reasoning: "HPP naik, margin aktual turun mendekati batas minimum.",

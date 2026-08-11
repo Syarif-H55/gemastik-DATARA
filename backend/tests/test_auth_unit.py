@@ -87,3 +87,71 @@ def test_business_requires_authentication(client: TestClient) -> None:
     res = client.get("/api/v1/business")
     assert res.status_code == 401
     assert res.json()["success"] is False
+
+
+# --- Google OAuth (Sign in with Google) ---
+
+def _fake_user() -> object:
+    return type("User", (), {"id": 7, "name": "Budi Google", "email": "budi@example.com"})
+
+
+def _fake_db() -> object:
+    """Session palsu — service di-monkeypatch sehingga DB tidak disentuh."""
+    return type("FakeSession", (), {})()
+
+
+def test_google_login_rejects_when_not_configured(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.api.deps import get_db
+
+    app.dependency_overrides[get_db] = lambda: _fake_db()
+
+    res = client.post("/api/v1/auth/google", json={"id_token": "eyJhbGciOiJSUzI1NiJ9.abc.def"})
+    assert res.status_code == 401
+    body = res.json()
+    assert body["success"] is False
+    assert "GOOGLE_CLIENT_ID" in body["message"]
+
+
+def test_google_login_rejects_invalid_token(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.api.deps import get_db, get_current_settings
+    from app.core.config import Settings
+    from app.services import auth_service
+
+    def fake_verify(*args: object, **kwargs: object) -> dict:
+        from app.core.errors import UnauthorizedError
+
+        raise UnauthorizedError("Token Google tidak valid atau sudah kedaluwarsa.")
+
+    app.dependency_overrides[get_current_settings] = lambda: Settings(
+        _env_file=None, jwt_secret=TEST_SECRET, google_client_id="client-id-tes.apps.googleusercontent.com"
+    )
+    app.dependency_overrides[get_db] = lambda: _fake_db()
+    monkeypatch.setattr(auth_service, "_verify_google_id_token", fake_verify)
+
+    res = client.post("/api/v1/auth/google", json={"id_token": "token-palsu-yang-cukup-panjang-untuk-lolos-validasi"})
+    assert res.status_code == 401
+    assert res.json()["success"] is False
+
+
+def test_google_login_with_verified_token(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.api.deps import get_db, get_current_settings
+    from app.core.config import Settings
+    from app.services import auth_service
+
+    app.dependency_overrides[get_current_settings] = lambda: Settings(
+        _env_file=None, jwt_secret=TEST_SECRET, google_client_id="client-id-tes.apps.googleusercontent.com"
+    )
+    app.dependency_overrides[get_db] = lambda: _fake_db()
+    monkeypatch.setattr(auth_service, "login_with_google", lambda db, *, id_token, client_id: _fake_user())
+
+    res = client.post("/api/v1/auth/google", json={"id_token": "eyJhbGciOiJSUzI1NiJ9.abc.def"})
+    assert res.status_code == 200
+    data = res.json()["data"]
+    assert data["user"]["email"] == "budi@example.com"
+    assert data["access_token"]

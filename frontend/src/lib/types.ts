@@ -159,6 +159,8 @@ export type ProductClass = "profitable" | "potential" | "evaluate";
 export interface DecisionRecord {
   id: number;
   type: DecisionType;
+  product_id: number | null;
+  product_name: string | null;
   title: string;
   summary: string;
   reasoning: string;
@@ -178,4 +180,19 @@ export interface GrowthStage {
   metric_1_value: number;
   metric_1_target: number;
   next_step: string;
+}
+
+export type AssistantRole = "user" | "assistant";
+
+export interface AssistantMessage {
+  id: number;
+  role: AssistantRole;
+  content: string;
+  created_at: string;
+}
+
+export interface AssistantConversation {
+  id: number;
+  title: string;
+  updated_at: string | null;
 }

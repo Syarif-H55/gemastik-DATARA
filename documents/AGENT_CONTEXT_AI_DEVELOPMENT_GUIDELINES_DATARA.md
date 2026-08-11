@@ -232,7 +232,7 @@ frontend/
     │   ├── layout/
     │   ├── ui/
     │   ├── page-header.tsx
-    │   ├── kira-icons.tsx
+    │   ├── datara-icons.tsx
     │   ├── theme-provider.tsx
     │   └── theme-toggle.tsx
     ├── hooks/
@@ -287,7 +287,7 @@ For Phosphor icons:
 ```text
 Server Component
       ↓
-src/components/kira-icons.tsx
+src/components/datara-icons.tsx
 ```
 
 Do not directly import:
@@ -324,7 +324,7 @@ Use Client Components only when necessary:
 Existing wrapper:
 
 ```text
-src/components/kira-icons.tsx
+src/components/datara-icons.tsx
 ```
 
 is the icon wrapper for Server Components.
@@ -1348,7 +1348,7 @@ When replacing demo data:
 
 # 44. REBRANDING
 
-The frontend still contains legacy KIRA references.
+Frontend rebranding from KIRA to DATARA is complete in code.
 
 Production product name:
 
@@ -1362,19 +1362,9 @@ Full name:
 DATARA — Data Analitik dan Rekomendasi untuk Pertumbuhan UMKM
 ```
 
-Legacy KIRA references must be removed from:
-
-```text
-Metadata
-Landing Page
-Login
-AppBrand
-Developer documentation
-```
+The icon wrapper is named `datara-icons.tsx`.
 
 Do not introduce new KIRA branding.
-
-The existing icon wrapper may retain its filename temporarily for compatibility, but new naming should prefer DATARA when refactoring is practical.
 
 ---
 
@@ -1790,7 +1780,7 @@ The current frontend report identifies these known gaps:
 - CRUD persistence is not implemented.
 - Inventory update is currently simulated.
 - Data resets on reload.
-- Rebranding KIRA → DATARA is incomplete.
+- Rebranding to DATARA is complete.
 - Legacy `owner | staff` type remains.
 - Mock data currently drives analytics.
 - There is no frontend test suite.

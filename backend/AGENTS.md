@@ -29,9 +29,9 @@ Backend bertanggung jawab terhadap business logic dan menjadi **source of truth*
 Sebelum melakukan implementasi, baca dan pahami dokumen berikut dari repository:
 
 1. `AGENT_CONTEXT_AI_DEVELOPMENT_GUIDELINES_DATARA.md`
-2. `DATA_DICTIONARY_AND_DATA_MODEL.md`
-3. `BUSINESS_RULES_AND_DECISION_LOGIC.md`
-4. `API_CONTRACT.md`
+2. `DATA_DICTIONARY_AND_DATA_MODEL_DATARA.md`
+3. `bussiness-rule-dan-decision-logic.md`
+4. `API_CONTRACT_API_SPECIFICATION_DATARA.md`
 5. `AI_ML_SPECIFICATION_DATARA.md`
 
 Jika task berkaitan dengan frontend/UI, baca juga:
