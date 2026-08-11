@@ -19,23 +19,38 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     api_prefix: str = "/api"
 
-    database_url: str = "mysql+pymysql://root:password@localhost:3306/datara"
+    # URL koneksi MySQL. Wajib diset lewat environment (.env / secret manager).
+    # Tidak ada default kredensial di source code.
+    database_url: str = ""
 
-    # Fallback terpisah (dipakai bila database_url tidak diset).
-    db_user: str = "root"
-    db_password: str = "password"
+    # Fallback (dipakai bila DATABASE_URL tidak diset). Kredensial tidak
+    # di-hardcode; nilai kosong akan membuat koneksi gagal dengan jelas.
+    db_user: str = ""
+    db_password: str = ""
     db_host: str = "localhost"
     db_port: int = 3306
-    db_name: str = "datara"
+    db_name: str = ""
+
+    # Origin yang diizinkan CORS (dipisahkan koma).
+    cors_origins: str = "http://localhost:3000"
 
     @property
     def resolved_database_url(self) -> str:
         if self.database_url:
             return self.database_url
+        if not self.db_user or not self.db_name:
+            raise RuntimeError(
+                "DATABASE_URL (atau DB_USER/DB_NAME) belum dikonfigurasi. "
+                "Salin .env.example menjadi .env dan isi koneksi MySQL."
+            )
         return (
             f"mysql+pymysql://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
         )
+
+    @property
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
 
 @lru_cache

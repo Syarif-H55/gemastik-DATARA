@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, Enum, String, Text, func
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -12,7 +12,7 @@ class DecisionApplied(Base):
     __tablename__ = "decisions_applied"
 
     id: Mapped[int] = mapped_column(pk_bigint(), primary_key=True, autoincrement=True)
-    business_id: Mapped[int] = mapped_column(fk_bigint(), nullable=False, index=True)
+    business_id: Mapped[int] = mapped_column(fk_bigint(), ForeignKey("businesses.id"), nullable=False, index=True)
     recommendation_id: Mapped[int | None] = mapped_column(fk_bigint(), nullable=True)
     type: Mapped[DecisionAppliedType] = mapped_column(Enum(DecisionAppliedType, native_enum=True), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Numeric, func
+from sqlalchemy import DateTime, ForeignKey, Numeric, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -11,7 +11,7 @@ class BusinessConfiguration(Base):
     __tablename__ = "business_configurations"
 
     id: Mapped[int] = mapped_column(pk_bigint(), primary_key=True, autoincrement=True)
-    business_id: Mapped[int] = mapped_column(fk_bigint(), nullable=False, unique=True, index=True)
+    business_id: Mapped[int] = mapped_column(fk_bigint(), ForeignKey("businesses.id"), nullable=False, unique=True, index=True)
     safety_days: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False, default=3)
     lead_time: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False, default=3)
     target_margin: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False, default=30)

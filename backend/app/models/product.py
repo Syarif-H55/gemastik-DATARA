@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, Numeric, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -11,7 +11,7 @@ class Product(Base):
     __tablename__ = "products"
 
     id: Mapped[int] = mapped_column(pk_bigint(), primary_key=True, autoincrement=True)
-    business_id: Mapped[int] = mapped_column(fk_bigint(), nullable=False, index=True)
+    business_id: Mapped[int] = mapped_column(fk_bigint(), ForeignKey("businesses.id"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(150), nullable=False)
     sku: Mapped[str | None] = mapped_column(String(50), nullable=True)
     selling_price: Mapped[float] = mapped_column(Numeric(15, 2), nullable=False)

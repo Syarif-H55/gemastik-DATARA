@@ -1,0 +1,1 @@
+"""Skema Pydantic untuk request/response DATARA (snake_case, validasi backend)."""

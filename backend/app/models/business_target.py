@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from sqlalchemy import Date, DateTime, Enum, Numeric, func
+from sqlalchemy import Date, DateTime, Enum, ForeignKey, Numeric, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -12,7 +12,7 @@ class BusinessTarget(Base):
     __tablename__ = "business_targets"
 
     id: Mapped[int] = mapped_column(pk_bigint(), primary_key=True, autoincrement=True)
-    business_id: Mapped[int] = mapped_column(fk_bigint(), nullable=False, index=True)
+    business_id: Mapped[int] = mapped_column(fk_bigint(), ForeignKey("businesses.id"), nullable=False, index=True)
     target_type: Mapped[TargetType] = mapped_column(Enum(TargetType, native_enum=True), nullable=False)
     target_value: Mapped[float] = mapped_column(Numeric(15, 2), nullable=False)
     period_type: Mapped[PeriodType] = mapped_column(Enum(PeriodType, native_enum=True), nullable=False)

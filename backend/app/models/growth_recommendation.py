@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, String, Text, func
+from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -12,7 +12,7 @@ class GrowthRecommendation(Base):
     __tablename__ = "growth_recommendations"
 
     id: Mapped[int] = mapped_column(pk_bigint(), primary_key=True, autoincrement=True)
-    business_id: Mapped[int] = mapped_column(fk_bigint(), nullable=False, index=True)
+    business_id: Mapped[int] = mapped_column(fk_bigint(), ForeignKey("businesses.id"), nullable=False, index=True)
     generated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
     category: Mapped[GrowthCategory] = mapped_column(Enum(GrowthCategory, native_enum=True), nullable=False)
     title: Mapped[str] = mapped_column(String(200), nullable=False)

@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Numeric, String, Text, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Numeric, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -12,8 +12,8 @@ class PricingRecommendation(Base):
     __tablename__ = "pricing_recommendations"
 
     id: Mapped[int] = mapped_column(pk_bigint(), primary_key=True, autoincrement=True)
-    business_id: Mapped[int] = mapped_column(fk_bigint(), nullable=False, index=True)
-    product_id: Mapped[int] = mapped_column(fk_bigint(), nullable=False, index=True)
+    business_id: Mapped[int] = mapped_column(fk_bigint(), ForeignKey("businesses.id"), nullable=False, index=True)
+    product_id: Mapped[int] = mapped_column(fk_bigint(), ForeignKey("products.id"), nullable=False, index=True)
     generated_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, server_default=func.now())
     current_price: Mapped[float] = mapped_column(Numeric(15, 2), nullable=False)
     current_hpp: Mapped[float] = mapped_column(Numeric(15, 2), nullable=False)
