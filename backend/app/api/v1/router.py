@@ -17,4 +17,8 @@ Contoh:
 """
 from fastapi import APIRouter
 
+from app.api.v1.routes import auth, business
+
 v1_router = APIRouter()
+v1_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+v1_router.include_router(business.router, prefix="/business", tags=["business"])

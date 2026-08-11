@@ -34,6 +34,12 @@ class Settings(BaseSettings):
     # Origin yang diizinkan CORS (dipisahkan koma).
     cors_origins: str = "http://localhost:3000"
 
+    # Authentication: JWT access token (stateless, Bearer).
+    # Wajib diset lewat environment; tidak ada default secret di source code.
+    jwt_secret: str = ""
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 24  # 1 hari
+
     @property
     def resolved_database_url(self) -> str:
         if self.database_url:
@@ -47,6 +53,15 @@ class Settings(BaseSettings):
             f"mysql+pymysql://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
         )
+
+    @property
+    def resolved_jwt_secret(self) -> str:
+        if not self.jwt_secret:
+            raise RuntimeError(
+                "JWT_SECRET belum dikonfigurasi. "
+                "Isi .env dengan secret acak (minimal 32 karakter)."
+            )
+        return self.jwt_secret
 
     @property
     def cors_origin_list(self) -> list[str]:

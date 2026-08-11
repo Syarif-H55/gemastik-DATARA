@@ -45,6 +45,9 @@ copy .env.example .env          # lalu isi koneksi MySQL
 | `DATABASE_URL` | Ya    | DSN MySQL, contoh `mysql+pymysql://user:pass@localhost:3306/datara` |
 | `DB_USER`/`DB_PASSWORD`/`DB_HOST`/`DB_PORT`/`DB_NAME` | Opsional | Fallback bila `DATABASE_URL` tidak diset |
 | `CORS_ORIGINS` | Opsional | Origin frontend diizinkan, pisahkan dengan koma. Default `http://localhost:3000` |
+| `JWT_SECRET` | Ya    | Secret acak (min. 32 karakter) untuk access token JWT |
+| `JWT_ALGORITHM` | Opsional | Algoritma JWT, default `HS256` |
+| `JWT_EXPIRE_MINUTES` | Opsional | Masa berlaku token, default `1440` (1 hari) |
 
 Kredensial tidak di-hardcode. Semua nilai rahasia dibaca dari `.env` (git-ignored).
 
@@ -61,6 +64,24 @@ Dokumentasi otomatis (OpenAPI): `http://localhost:8000/docs`.
 ```text
 GET /api/health       -> {"success": true, "data": {"status": "ok", ...}}
 GET /api/health/db    -> 200 bila MySQL dapat dihubungi, 503 bila tidak
+```
+
+### Authentication
+
+```text
+POST /api/v1/auth/login     -> {"success": true, "data": {"user": {...}, "access_token": "..."}}
+GET  /api/v1/auth/me        -> user terautentikasi (Authorization: Bearer <token>)
+POST /api/v1/auth/logout    -> {"success": true, "message": "Logged out successfully"}
+GET  /api/v1/business       -> business milik user terautentikasi (ownership server-side)
+```
+
+Token: JWT (stateless, `Authorization: Bearer <access_token>`). Password di-hash dengan bcrypt — tidak pernah disimpan/dikembalikan plaintext.
+
+Buat akun demo (API Contract MVP tidak punya endpoint `register`):
+
+```bash
+python -m scripts.seed_demo_user --email owner@umkm.id --name "Budi" \
+    --password rahasia123 --business "Kedai Contoh" --business-type food_beverage
 ```
 
 ## Migration (Alembic)
