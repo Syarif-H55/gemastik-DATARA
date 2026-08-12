@@ -144,6 +144,7 @@ def create_movement(
     movement_date: datetime,
     reference_id: int | None = None,
     note: str | None = None,
+    stock_after: float | None = None,
 ) -> InventoryMovement:
     movement = InventoryMovement(
         business_id=business_id,
@@ -153,6 +154,7 @@ def create_movement(
         movement_date=movement_date,
         reference_id=reference_id,
         note=note,
+        stock_after=stock_after,
     )
     db.add(movement)
     db.flush()

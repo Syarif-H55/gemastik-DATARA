@@ -5,7 +5,11 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_business, get_db
 from app.models.business import Business
 from app.repositories import recommendation_repository
-from app.schemas.recommendation import RestockApplyRequest, RestockRecommendationCreateRequest
+from app.schemas.recommendation import (
+    RestockApplyRequest,
+    RestockDismissRequest,
+    RestockRecommendationCreateRequest,
+)
 from app.services import decision_service, restock_service
 
 router = APIRouter()
@@ -45,3 +49,12 @@ def apply_recommendation(
     db: Session = Depends(get_db),
 ) -> dict:
     return {"success": True, "data": decision_service.apply_restock(db, business, payload.recommendation_id)}
+
+
+@router.post("/dismiss", response_model=dict)
+def dismiss_recommendation(
+    payload: RestockDismissRequest,
+    business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
+) -> dict:
+    return {"success": True, "data": decision_service.dismiss_restock(db, business, payload.recommendation_id)}

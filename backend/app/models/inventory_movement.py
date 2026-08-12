@@ -16,6 +16,7 @@ class InventoryMovement(Base):
     product_id: Mapped[int] = mapped_column(fk_bigint(), ForeignKey("products.id"), nullable=False, index=True)
     movement_type: Mapped[MovementType] = mapped_column(Enum(MovementType, native_enum=True), nullable=False)
     quantity: Mapped[float] = mapped_column(Numeric(12, 2), nullable=False)
+    stock_after: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
     movement_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
     reference_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     note: Mapped[str | None] = mapped_column(String(255), nullable=True)

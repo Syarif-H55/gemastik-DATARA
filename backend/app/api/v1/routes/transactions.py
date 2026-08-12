@@ -10,6 +10,15 @@ from app.services import transaction_service
 router = APIRouter()
 
 
+@router.get("/{transaction_id}", response_model=dict)
+def get_transaction(
+    transaction_id: int,
+    business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
+) -> dict:
+    return {"success": True, "data": transaction_service.get_transaction(db, business, transaction_id)}
+
+
 @router.post("", response_model=dict, status_code=201)
 def create_transaction(
     payload: TransactionCreateRequest,

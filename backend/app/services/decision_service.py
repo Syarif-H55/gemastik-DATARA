@@ -117,6 +117,7 @@ def apply_restock(db: Session, business: Business, recommendation_id: int) -> di
         movement_date=datetime.now(),
         reference_id=rec.id,
         note=f"Restock {product.name} sesuai rekomendasi",
+        stock_after=new_stock,
     )
     product_repository.set_stock(db, inventory, new_stock)
     rec.status = RecommendationStatus.ACCEPTED
@@ -159,6 +160,11 @@ def _derive_status(metrics_before: dict, metrics_after: dict) -> tuple[DecisionA
     return status, notes
 
 
+def _has_post_decision_data(db: Session, business_id: int, applied_at: datetime) -> bool:
+    """Apakah sudah ada transaksi aktual setelah keputusan diterapkan."""
+    return transaction_repository.count_after(db, business_id, applied_at) > 0
+
+
 def list_decisions(db: Session, business: Business) -> list[dict]:
     decisions = recommendation_repository.list_applied_decisions(db, business.id)
     result: list[dict] = []
@@ -178,7 +184,15 @@ def list_decisions(db: Session, business: Business) -> list[dict]:
 
         metrics_before = decision.metrics_before or {"revenue": 0, "margin": 0, "stock": 0}
         metrics_after = _metrics(db, business, product_id)
-        status, notes = _derive_status(metrics_before, metrics_after)
+
+        if _has_post_decision_data(db, business.id, decision.applied_at):
+            status, notes = _derive_status(metrics_before, metrics_after)
+        else:
+            status = DecisionAppliedStatus.UNKNOWN
+            notes = (
+                "Monitoring belum dapat dihitung: belum ada data transaksi setelah keputusan diterapkan. "
+                "Awasi indikator setelah aktivitas penjualan berikutnya."
+            )
 
         result.append(
             {
@@ -193,6 +207,7 @@ def list_decisions(db: Session, business: Business) -> list[dict]:
                 "metrics_before": metrics_before,
                 "metrics_after": metrics_after,
                 "status": status.value.lower(),
+                "monitoring_available": status != DecisionAppliedStatus.UNKNOWN,
                 "outcome_notes": decision.outcome_notes or notes,
             }
         )
@@ -209,11 +224,24 @@ def get_decision(db: Session, business: Business, decision_id: int) -> dict:
     raise NotFoundError("Keputusan tidak ditemukan.")
 
 
+def apply_generic(db: Session, business: Business, recommendation_id: int) -> dict:
+    """Apply generic: resolve id ke recommendation pricing/restock, lalu terapkan."""
+    pricing = recommendation_repository.get_pricing_recommendation(db, recommendation_id, business.id)
+    if pricing is not None:
+        return apply_pricing(db, business, pricing.id)
+    restock = recommendation_repository.get_restock_recommendation(db, recommendation_id, business.id)
+    if restock is not None:
+        return apply_restock(db, business, restock.id)
+    raise NotFoundError("Rekomendasi tidak ditemukan.")
+
+
 def dismiss(db: Session, business: Business, decision_id: int) -> dict:
     decision = recommendation_repository.get_decision(db, decision_id, business.id)
     if decision is None:
         raise NotFoundError("Keputusan tidak ditemukan.")
-    return {"id": decision.id, "status": "dismissed", "success": True}
+    raise ConflictError(
+        "Keputusan yang sudah diterapkan tidak dapat di-dismiss. Dismiss hanya berlaku pada rekomendasi yang masih PENDING."
+    )
 
 
 def dismiss_pricing(db: Session, business: Business, recommendation_id: int) -> dict:

@@ -73,6 +73,7 @@ def create_sale(db: Session, business: Business, payload: TransactionCreateReque
             movement_date=transaction_date,
             reference_id=transaction.id,
             note=f"Penjualan {transaction.reference_number}",
+            stock_after=new_stock,
         )
         product_repository.set_stock(db, inventory, new_stock)
         items_out.append(
@@ -98,30 +99,38 @@ def create_sale(db: Session, business: Business, payload: TransactionCreateReque
     }
 
 
+def _serialize(db: Session, tx) -> dict:
+    items = [
+        {
+            "product_id": item.product_id,
+            "quantity": float(item.quantity),
+            "unit_price": float(item.unit_price),
+            "unit_hpp": float(item.unit_hpp),
+        }
+        for item in tx.items
+    ]
+    return {
+        "id": tx.id,
+        "reference_number": tx.reference_number or "",
+        "customer_name": tx.customer_name,
+        "transaction_date": tx.transaction_date.isoformat(),
+        "subtotal": float(tx.subtotal or 0),
+        "discount": float(tx.discount or 0),
+        "total": float(tx.total_amount),
+        "items": items,
+        "created_at": tx.created_at.isoformat(),
+    }
+
+
+def get_transaction(db: Session, business: Business, transaction_id: int) -> dict:
+    from app.core.errors import NotFoundError
+
+    tx = transaction_repository.get_by_business(db, transaction_id, business.id)
+    if tx is None:
+        raise NotFoundError("Transaksi tidak ditemukan.")
+    return _serialize(db, tx)
+
+
 def list_transactions(db: Session, business: Business, *, limit: int = 50) -> list[dict]:
     transactions = transaction_repository.list_by_business(db, business.id, limit=limit)
-    result: list[dict] = []
-    for tx in transactions:
-        items = [
-            {
-                "product_id": item.product_id,
-                "quantity": float(item.quantity),
-                "unit_price": float(item.unit_price),
-                "unit_hpp": float(item.unit_hpp),
-            }
-            for item in tx.items
-        ]
-        result.append(
-            {
-                "id": tx.id,
-                "reference_number": tx.reference_number or "",
-                "customer_name": tx.customer_name,
-                "transaction_date": tx.transaction_date.isoformat(),
-                "subtotal": float(tx.subtotal or 0),
-                "discount": float(tx.discount or 0),
-                "total": float(tx.total_amount),
-                "items": items,
-                "created_at": tx.created_at.isoformat(),
-            }
-        )
-    return result
+    return [_serialize(db, tx) for tx in transactions]

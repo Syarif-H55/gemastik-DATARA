@@ -180,6 +180,29 @@ def cogs_total_in_range(db: Session, business_id: int, start: datetime, end: dat
     return float(value)
 
 
+def count_after(
+    db: Session,
+    business_id: int,
+    start: datetime,
+) -> int:
+    """Jumlah transaksi COMPLETED yang STRICTLY terjadi setelah `start`.
+
+    Dipakai monitoring keputusan agar data sebelum keputusan (termasuk yang
+    jatuh pada detik yang sama dengan `applied_at`) tidak dianggap sebagai
+    data pasca-keputusan.
+    """
+    return (
+        db.query(func.count(SalesTransaction.id))
+        .filter(
+            SalesTransaction.business_id == business_id,
+            SalesTransaction.transaction_date > start,
+            SalesTransaction.status == TransactionStatus.COMPLETED,
+        )
+        .scalar()
+        or 0
+    )
+
+
 def revenue_by_category(
     db: Session,
     business_id: int,

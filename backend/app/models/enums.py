@@ -99,3 +99,4 @@ class DecisionAppliedStatus(str, enum.Enum):
     IMPROVED = "IMPROVED"
     FLAT = "FLAT"
     REGRESSED = "REGRESSED"
+    UNKNOWN = "UNKNOWN"

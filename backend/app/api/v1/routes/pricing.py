@@ -5,7 +5,11 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_business, get_db
 from app.models.business import Business
 from app.repositories import recommendation_repository
-from app.schemas.recommendation import PricingApplyRequest, PricingRecommendationCreateRequest
+from app.schemas.recommendation import (
+    PricingApplyRequest,
+    PricingDismissRequest,
+    PricingRecommendationCreateRequest,
+)
 from app.services import decision_service, pricing_service
 
 router = APIRouter()
@@ -47,3 +51,12 @@ def apply_recommendation(
     db: Session = Depends(get_db),
 ) -> dict:
     return {"success": True, "data": decision_service.apply_pricing(db, business, payload.recommendation_id)}
+
+
+@router.post("/dismiss", response_model=dict)
+def dismiss_recommendation(
+    payload: PricingDismissRequest,
+    business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
+) -> dict:
+    return {"success": True, "data": decision_service.dismiss_pricing(db, business, payload.recommendation_id)}

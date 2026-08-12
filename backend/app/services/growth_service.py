@@ -68,15 +68,32 @@ def growth_stages(db: Session, business: Business) -> dict:
         },
     ]
 
-    current_assigned = False
+    statuses: list[str] = []
     for stage in stages:
         if stage["metric_1_value"] >= stage["metric_1_target"]:
+            statuses.append("done")
+        else:
+            statuses.append("current")
+
+    # Status: tahap pertama yang belum selesai = current, tahap tepat setelahnya = next,
+    # sisanya = upcoming. Jika seluruh tahap berhasil -> tahap terakhir menjadi current.
+    assigned_current = False
+    assigned_next = False
+    for stage, status in zip(stages, statuses):
+        if status == "done":
             stage["status"] = "done"
-        elif not current_assigned:
+            continue
+        if not assigned_current:
             stage["status"] = "current"
-            current_assigned = True
+            assigned_current = True
+        elif not assigned_next:
+            stage["status"] = "next"
+            assigned_next = True
         else:
             stage["status"] = "upcoming"
+
+    if not assigned_current:
+        stages[-1]["status"] = "current"
 
     return {
         "current_stage": next((s["label"] for s in stages if s["status"] == "current"), None),

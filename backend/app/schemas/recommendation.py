@@ -11,9 +11,17 @@ class PricingApplyRequest(BaseModel):
     recommendation_id: int
 
 
+class PricingDismissRequest(BaseModel):
+    recommendation_id: int
+
+
 class RestockRecommendationCreateRequest(BaseModel):
     product_id: int
 
 
 class RestockApplyRequest(BaseModel):
+    recommendation_id: int
+
+
+class RestockDismissRequest(BaseModel):
     recommendation_id: int

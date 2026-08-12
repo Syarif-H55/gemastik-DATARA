@@ -76,8 +76,8 @@ def _health_label(score: float) -> str:
     if score >= 75:
         return "Sehat"
     if score >= 50:
-        return "Cukup"
-    return "Perlu Perhatian"
+        return "Perlu Perhatian"
+    return "Berisiko"
 
 
 def _health_status(score: float) -> str:
@@ -90,6 +90,22 @@ def _health_status(score: float) -> str:
 
 def business_health(db: Session, business: Business) -> dict:
     today = datetime.now()
+    start_30 = today - timedelta(days=_PERIOD_DAYS_SUMMARY)
+    totals = transaction_repository.totals_in_range(db, business.id, start_30, today)
+
+    # Business Rules 13.12: jangan paksa klasifikasi jika data belum cukup.
+    if totals["tx_count"] == 0:
+        return {
+            "status": "INSUFFICIENT_DATA",
+            "score": 0.0,
+            "label": "Data belum cukup",
+            "metrics": {
+                "gross_margin": 0.0,
+                "net_margin": 0.0,
+                "operating_expense": 0.0,
+            },
+        }
+
     score, _ = _health_score(db, business, today)
     summary = finance_summary(db, business)
     return {
@@ -118,6 +134,19 @@ def dashboard(db: Session, business: Business) -> dict:
     avg_margin = (total_profit / revenue * 100) if revenue > 0 else 0.0
 
     score, _ = _health_score(db, business, today)
+
+    if totals["tx_count"] == 0:
+        business_health_block = {
+            "score": 0.0,
+            "label": "Data belum cukup",
+            "status": "INSUFFICIENT_DATA",
+        }
+    else:
+        business_health_block = {
+            "score": score,
+            "label": _health_label(score),
+            "status": _health_status(score),
+        }
 
     # Tren 7 hari terakhir (per hari).
     revenue_by_day = transaction_repository.revenue_by_day(db, business.id, start_7, today)
@@ -151,11 +180,7 @@ def dashboard(db: Session, business: Business) -> dict:
         "avg_margin_percent": round(avg_margin, 2),
         "transactions_count": totals["tx_count"],
         "products_sold": len(sold_qty),
-        "business_health": {
-            "score": score,
-            "label": _health_label(score),
-            "status": _health_status(score),
-        },
+        "business_health": business_health_block,
         "revenue_trend": revenue_trend,
         "category_breakdown": category_breakdown,
     }

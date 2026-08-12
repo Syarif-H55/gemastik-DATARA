@@ -6,6 +6,7 @@ business logic dan tidak menulis query berulang.
 from app.repositories import (  # noqa: F401
     business_configuration_repository,
     business_repository,
+    expense_repository,
     product_repository,
     recommendation_repository,
     transaction_repository,

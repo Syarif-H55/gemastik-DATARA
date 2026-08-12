@@ -54,7 +54,11 @@ Kredensial tidak di-hardcode. Semua nilai rahasia dibaca dari `.env` (git-ignore
 ## Menjalankan
 
 ```bash
+.venv\Scripts\python.exe -m pip install -r requirements.txt
+.venv\Scripts\Activate.ps1
 uvicorn app.main:app --reload --port 8000
+
+backend\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
 Dokumentasi otomatis (OpenAPI): `http://localhost:8000/docs`.

@@ -26,6 +26,15 @@ def get_decision(
     return {"success": True, "data": decision_service.get_decision(db, business, decision_id)}
 
 
+@router.post("/{decision_id}/apply", response_model=dict)
+def apply_decision(
+    decision_id: int,
+    business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
+) -> dict:
+    return {"success": True, "data": decision_service.apply_generic(db, business, decision_id)}
+
+
 @router.post("/{decision_id}/dismiss", response_model=dict)
 def dismiss_decision(
     decision_id: int,

@@ -1,8 +1,16 @@
 """Service Sales Forecasting (API Contract bab 12, AI_ML spec bab forecasting).
 
-Metode: kombinasi Simple Average / Moving Average / Simple Estimate.
-Dipilih berdasarkan kecukupan data. Tidak mengarang data historis.
+Metode: kombinasi Simple Average / Moving Average / Exponential Smoothing.
+Dipilih berdasarkan kecukupan data (AI_ML spec bab 8, business rule 13.11):
+
+- 0 hari terjual                       -> INSUFFICIENT (prediksi 0, confidence rendah)
+- 1-6  hari terisi di jendela 14 hari  -> Simple Average (LOW confidence)
+- 7-13 hari terisi                     -> Moving Average (MEDIUM confidence)
+- >=14 hari terisi                     -> Exponential Smoothing (HIGH confidence)
+
+Confidence dihitung dinamis dari volume & stabilitas data (tidak hardcode).
 """
+import math
 from datetime import datetime, timedelta
 
 from sqlalchemy.orm import Session
@@ -12,6 +20,68 @@ from app.repositories import product_repository, transaction_repository
 
 _LOOKBACK_DAYS = 14
 _TREND_WINDOW = 4
+_MOVING_WINDOW = 7
+_EXP_ALPHA = 0.3
+
+
+def _exponential_smoothing_forecast(series: list[float], alpha: float = _EXP_ALPHA) -> float:
+    """Peramalan satu langkah ke depan dengan Exponential Smoothing."""
+    if not series:
+        return 0.0
+    smoothed = series[0]
+    for value in series[1:]:
+        smoothed = alpha * value + (1 - alpha) * smoothed
+    return smoothed
+
+
+def _coefficient_of_variation(series: list[float]) -> float:
+    """CV mengukur stabilitas/pola permintaan; dipakai untuk confidence."""
+    if not series:
+        return 99.0
+    mean = sum(series) / len(series)
+    if mean <= 0:
+        return 99.0
+    variance = sum((v - mean) ** 2 for v in series) / len(series)
+    return math.sqrt(variance) / mean
+
+
+def _normalize_model(model: str) -> str:
+    return {
+        "simple": "simple",
+        "simple-average": "simple",
+        "moving": "moving",
+        "moving-average": "moving",
+        "exponential": "exponential",
+        "exponential-smoothing": "exponential",
+        "insufficient": "insufficient",
+    }.get(model, "insufficient")
+
+
+def _dynamic_confidence(model: str, active_days: int, series: list[float]) -> int:
+    """Confidence dinamis dari volume data + stabilitas, tanpa hardcode 76/88."""
+    normalized = _normalize_model(model)
+    base = {"insufficient": 20, "simple": 45, "moving": 60, "exponential": 72}[normalized]
+    cv = _coefficient_of_variation(series)
+
+    if normalized == "simple":
+        bonus = max(0, min(15, active_days * 2))
+    elif normalized == "moving":
+        bonus = max(0, min(15, active_days * 2))
+    elif normalized == "exponential":
+        bonus = max(0, min(18, active_days))
+    else:
+        bonus = 0
+
+    if cv < 0.4:
+        stability = 6
+    elif cv < 0.8:
+        stability = 2
+    elif cv > 1.5:
+        stability = -8
+    else:
+        stability = 0
+
+    return int(max(5, min(92, base + bonus + stability)))
 
 
 def _forecast_for_product(db: Session, product, daily_qty: dict[datetime.date, float], today: datetime) -> dict:
@@ -19,31 +89,35 @@ def _forecast_for_product(db: Session, product, daily_qty: dict[datetime.date, f
     actual_series = [float(daily_qty.get(day, 0.0)) for day in days]
 
     active_days = sum(1 for q in actual_series if q > 0)
-    data_sufficient = active_days >= 7
     avg = sum(actual_series) / len(actual_series) if actual_series else 0.0
-    recent_avg = sum(actual_series[-7:]) / 7 if len(actual_series) >= 7 else avg
+    recent = actual_series[-_MOVING_WINDOW:]
 
-    if data_sufficient:
-        predicted = recent_avg
-        method = "Moving Average (7 hari)"
-        model = "moving-average"
-        confidence = 88 if active_days >= 10 else 76
-    elif active_days > 0:
-        predicted = avg
-        method = "Simple Average"
-        model = "simple-average"
-        confidence = 62
-    else:
+    if active_days == 0:
         predicted = 0.0
-        method = "Simple Estimate (data terbatas)"
-        model = "simple-estimate"
-        confidence = 40
+        model = "insufficient"
+        method = "Data belum cukup (INSUFFICIENT)"
+    elif active_days < 7:
+        predicted = avg
+        model = "simple-average"
+        method = "Simple Average"
+    elif active_days < _LOOKBACK_DAYS:
+        predicted = sum(recent) / len(recent)
+        model = "moving-average"
+        method = f"Moving Average ({_MOVING_WINDOW} hari)"
+    else:
+        predicted = _exponential_smoothing_forecast(actual_series)
+        model = "exponential-smoothing"
+        method = "Exponential Smoothing"
 
+    confidence = _dynamic_confidence(model, active_days, actual_series)
+    status = "INSUFFICIENT" if active_days == 0 else "OK"
+
+    # Tren: bandingkan separuh pertama vs kedua jendela data.
     half = _TREND_WINDOW
-    recent = sum(actual_series[-half:])
-    prior = sum(actual_series[-2 * half : -half])
-    if data_sufficient and prior > 0:
-        ratio = recent / prior
+    recent_sum = sum(actual_series[-half:])
+    prior_sum = sum(actual_series[-2 * half : -half])
+    if active_days > 0 and prior_sum > 0:
+        ratio = recent_sum / prior_sum
         if ratio > 1.2:
             trend = "up"
         elif ratio < 0.8:
@@ -65,7 +139,7 @@ def _forecast_for_product(db: Session, product, daily_qty: dict[datetime.date, f
             {
                 "period": day.date().isoformat(),
                 "actual": day_qty,
-                "forecast": round(sum(actual_series[: _LOOKBACK_DAYS - i]) / max(1, _LOOKBACK_DAYS - i), 1),
+                "forecast": round(day_qty, 1),
                 "lower": 0,
                 "upper": 0,
             }
@@ -80,23 +154,30 @@ def _forecast_for_product(db: Session, product, daily_qty: dict[datetime.date, f
         }
     )
 
-    trend_label = {"up": "naik", "down": "menurun", "flat": "stabil"}[trend]
-    if data_sufficient:
-        reasoning = (
-            f"Riwayat penjualan {product.name} {_LOOKBACK_DAYS} hari terakhir menunjukkan "
-            f"tren {trend_label} (rata-rata {recent_avg:.1f} unit/hari). "
-            f"Prediksi {predicted_units:.0f} unit untuk periode berikutnya dengan kepercayaan {confidence}%."
-        )
-    elif active_days > 0:
-        reasoning = (
-            f"Data penjualan {product.name} masih terbatas ({active_days} hari). "
-            f"Estimasi kasar {predicted_units:.0f} unit/hari dengan kepercayaan {confidence}%. "
-            "Catat transaksi lebih rutin agar prediksi makin akurat."
-        )
-    else:
+    if active_days == 0:
         reasoning = (
             f"Belum ada riwayat penjualan untuk {product.name}. "
-            "Forecast tidak dibuat hingga data transaksi tersedia."
+            "Forecast tidak dapat dihasilkan (INSUFFICIENT) hingga data transaksi tersedia. "
+            "Catat transaksi lebih rutin agar estimasi dapat dibuat."
+        )
+    elif active_days < 7:
+        reasoning = (
+            f"Data penjualan {product.name} masih terbatas ({active_days} hari terisi). "
+            f"Estimasi kasar {predicted_units:.0f} unit/hari dengan kepercayaan {confidence}%. "
+            "Semakin rutin transaksi dicatat, semakin akurat estimasinya."
+        )
+    elif active_days < _LOOKBACK_DAYS:
+        reasoning = (
+            f"Penjualan {product.name} dalam {_LOOKBACK_DAYS} hari terakhir cukup untuk "
+            f"moving average {_MOVING_WINDOW} hari (rata-rata {predicted:.1f} unit/hari), "
+            f"dengan kepercayaan {confidence}%."
+        )
+    else:
+        trend_label = {"up": "naik", "down": "menurun", "flat": "stabil"}[trend]
+        reasoning = (
+            f"Data penjualan {product.name} {_LOOKBACK_DAYS} hari terakhir mencukupi untuk "
+            f"exponential smoothing (bobot lebih besar pada data terbaru), tren {trend_label}. "
+            f"Prediksi {predicted_units:.0f} unit untuk periode berikutnya dengan kepercayaan {confidence}%."
         )
 
     return {
@@ -108,6 +189,7 @@ def _forecast_for_product(db: Session, product, daily_qty: dict[datetime.date, f
         "next_period": next_period.isoformat(),
         "predicted_units": predicted_units,
         "confidence": confidence,
+        "status": status,
         "trend": trend,
         "points": points,
         "reasoning": reasoning,
@@ -120,6 +202,33 @@ def forecast_all(db: Session, business: Business) -> list[dict]:
     daily_qty = transaction_repository.daily_qty_per_product(db, business.id, start, today)
     products = product_repository.list_by_business(db, business.id)
     return [_forecast_for_product(db, p, daily_qty.get(p.id, {}), today) for p in products]
+
+
+def refresh(db: Session, business: Business) -> dict:
+    """Menghitung ulang forecast seluruh produk dan mempersist hasilnya ke `forecast_results`."""
+    from app.repositories import recommendation_repository
+
+    today = datetime.now()
+    start = today - timedelta(days=_LOOKBACK_DAYS)
+    daily_qty = transaction_repository.daily_qty_per_product(db, business.id, start, today)
+    products = product_repository.list_by_business(db, business.id)
+
+    stored = 0
+    for product in products:
+        result = _forecast_for_product(db, product, daily_qty.get(product.id, {}), today)
+        if result["status"] == "INSUFFICIENT":
+            continue
+        recommendation_repository.create_forecast(
+            db,
+            business_id=business.id,
+            product_id=product.id,
+            forecast_date=result["next_period"],
+            predicted_quantity=result["predicted_units"],
+            model_version=result["model"],
+        )
+        stored += 1
+    db.commit()
+    return {"refresh_at": today.isoformat(), "products_updated": stored}
 
 
 def forecast_product(db: Session, business: Business, product_id: int) -> dict:

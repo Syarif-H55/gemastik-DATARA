@@ -77,6 +77,7 @@ def create_movement(db: Session, business: Business, payload: InventoryMovementC
         quantity=delta,
         movement_date=movement_date,
         note=payload.note,
+        stock_after=new_stock,
     )
     product_repository.set_stock(db, inventory, new_stock)
     db.commit()
@@ -97,8 +98,6 @@ def list_movements(db: Session, business: Business, *, limit: int = 100, product
     movements = product_repository.list_movements(db, business.id, limit=limit, product_id=product_id)
     result: list[dict] = []
     for m in movements:
-        inventory = product_repository.get_inventory_by_product(db, m.product_id)
-        stock_after = float(inventory.current_stock) if inventory else None
         result.append(
             {
                 "id": m.id,
@@ -106,7 +105,7 @@ def list_movements(db: Session, business: Business, *, limit: int = 100, product
                 "product_name": m.product.name if m.product else None,
                 "movement_type": m.movement_type.value,
                 "quantity": float(m.quantity),
-                "stock_after": stock_after,
+                "stock_after": float(m.stock_after) if m.stock_after is not None else None,
                 "note": m.note,
                 "created_at": m.created_at.isoformat(),
             }

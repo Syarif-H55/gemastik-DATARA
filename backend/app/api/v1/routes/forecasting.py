@@ -17,6 +17,14 @@ def forecast_all(
     return {"success": True, "data": forecasting_service.forecast_all(db, business)}
 
 
+@router.post("/refresh", response_model=dict)
+def refresh(
+    business: Business = Depends(get_current_business),
+    db: Session = Depends(get_db),
+) -> dict:
+    return {"success": True, "data": forecasting_service.refresh(db, business)}
+
+
 @router.get("/products/{product_id}", response_model=dict)
 def forecast_product(
     product_id: int,
