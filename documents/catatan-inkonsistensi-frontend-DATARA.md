@@ -28,7 +28,7 @@ Catatan ini membantu frontend developer memahami **apa yang akan backend sediaka
 | 1 | `Role = "owner" \| "staff"` | `types.ts:1,7` | Role ganda tidak dipakai; produk hanya 1 actor |
 | 2 | `Product.sku`, `hpp`, `stock`, `low_stock_threshold` | `types.ts:12-23` | Field tidak ada di tabel `products` |
 | 3 | `Product` tanpa `unit`, `business_id` | `types.ts:12-23` | Field ada di data dictionary |
-| 4 | `ProductMovementType = received/issued/adjustment/sale` | `types.ts:10` | Enumerasi beda dengan `movement_type` |
+| 4 | ~~`ProductMovementType = received/issued/adjustment/sale`~~ | `types.ts:10` | ✅ Resolved → `received/waste/adjustment/sale` |
 | 5 | `InventoryLog.stock_after`, `note` | `types.ts:39-48` | Tidak ada di `inventory_movements` |
 | 6 | `Transaction.reference_number`, `customer_name`, `subtotal`, `discount`, `total` | `types.ts:56-66` | Tidak ada di `sales_transactions` |
 | 7 | Tidak ada `status` transaksi | — | Business Rules 6.3 butuh transaksi batal |
@@ -105,20 +105,20 @@ Catatan ini membantu frontend developer memahami **apa yang akan backend sediaka
 
 ---
 
-## 3.4 Enumerasi `ProductMovementType`
+## 3.4 Enumerasi `ProductMovementType` — ✅ RESOLVED
 
-**Frontend:** `"received" | "issued" | "adjustment" | "sale"` (types.ts:10).
+**Keputusan:** API Contract bab 9.2 adalah acuan — terminology lowercase
+`received / waste / adjustment / sale`. Backend menerima & mengembalikan nilai
+lowercase yang sama (response konsisten dengan request), dipetakan ke enum DB
+`RESTOCK / SALE / ADJUSTMENT / WASTE` di `inventory_service.py`. Frontend
+`types.ts` diselaraskan menjadi `"received" | "waste" | "adjustment" | "sale"`
+(alias `issued` dihapus). Implementasi: commit Fase D — lihat
+`documents/laporan-backend-reconciliation-DATARA.md`.
 
-**Dokumen:** `inventory_movements.movement_type` = `RESTOCK / SALE / ADJUSTMENT / WASTE` (Data Dictionary 9.2).
-
-**Perbedaan:**
-- `received` ↔ `RESTOCK`
-- `issued` → tidak ada padanan
-- `sale` ↔ `SALE`
-- `adjustment` ↔ `ADJUSTMENT`
-- `WASTE` → tidak ada padanan di frontend
-
-**Rekomendasi Backend:** API mengirim nilai data dictionary (uppercase) lalu frontend memetakan. Alternatif: backend mengirim lowercase `"restock"`, `"sale"`, `"adjustment"`, `"waste"` agar frontend tinggal tambah `"waste"`. **Perlu keputusan bersama** — sebaiknya jangan sampai `issued` dipakai backend karena tidak ada di kedua acuan.
+**Status sebelumnya (referensi):**
+- Frontend: `"received" | "issued" | "adjustment" | "sale"` (types.ts:10).
+- Dokumen: `inventory_movements.movement_type` = `RESTOCK / SALE / ADJUSTMENT / WASTE` (Data Dictionary 9.2).
+- `issued` → tidak ada padanan; `WASTE` → tidak ada padanan di frontend.
 
 ---
 
@@ -318,7 +318,7 @@ Ringkasan item yang butuh kesepakatan bersama (frontend + backend + tim produk):
 | # | Topik | Opsi Singkat |
 |---|---|---|
 | A | `sku` & `low_stock_threshold` produk | Kolom DB baru vs derived |
-| B | Enum movement type | Upper (RESTOCK/WASTE) vs lower (restock/waste) |
+| B | Enum movement type | ✅ Decided → lowercase `received/waste/adjustment/sale` (API Contract 9.2) |
 | C | `note` di inventory_movements | Tambah kolom vs tanpa note |
 | D | Diskon & customer_name transaksi | Simpan di DB vs tidak (MVP) |
 | E | Kolom `status` transaksi | Wajib (COMPLETED/CANCELLED) |

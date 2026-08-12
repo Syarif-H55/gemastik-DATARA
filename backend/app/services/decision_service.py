@@ -236,27 +236,56 @@ def apply_generic(db: Session, business: Business, recommendation_id: int) -> di
 
 
 def dismiss(db: Session, business: Business, decision_id: int) -> dict:
+    """Generic dismiss — simetris dengan ``apply_generic``.
+
+    Id diperlakukan sebagai id rekomendasi pricing/restock. Hanya rekomendasi
+    yang masih PENDING yang boleh di-dismiss; rekomendasi/ keputusan yang sudah
+    di-apply (ACCEPTED / masuk DecisionApplied) tidak boleh di-dismiss.
+    """
+    pricing = recommendation_repository.get_pricing_recommendation(db, decision_id, business.id)
+    if pricing is not None:
+        return _dismiss_pricing_rec(db, pricing)
+    restock = recommendation_repository.get_restock_recommendation(db, decision_id, business.id)
+    if restock is not None:
+        return _dismiss_restock_rec(db, restock)
     decision = recommendation_repository.get_decision(db, decision_id, business.id)
-    if decision is None:
-        raise NotFoundError("Keputusan tidak ditemukan.")
-    raise ConflictError(
-        "Keputusan yang sudah diterapkan tidak dapat di-dismiss. Dismiss hanya berlaku pada rekomendasi yang masih PENDING."
-    )
+    if decision is not None:
+        raise ConflictError(
+            "Keputusan yang sudah diterapkan tidak dapat di-dismiss. "
+            "Dismiss hanya berlaku pada rekomendasi yang masih PENDING."
+        )
+    raise NotFoundError("Rekomendasi tidak ditemukan.")
+
+
+def _dismiss_pricing_rec(db: Session, rec) -> dict:
+    if rec.status != RecommendationStatus.PENDING:
+        raise ConflictError(
+            "Rekomendasi yang sudah diterapkan (APPLIED) tidak dapat di-dismiss."
+        )
+    rec.status = RecommendationStatus.DISMISSED
+    db.commit()
+    return {"id": rec.id, "status": "dismissed"}
+
+
+def _dismiss_restock_rec(db: Session, rec) -> dict:
+    if rec.status != RecommendationStatus.PENDING:
+        raise ConflictError(
+            "Rekomendasi yang sudah diterapkan (APPLIED) tidak dapat di-dismiss."
+        )
+    rec.status = RecommendationStatus.DISMISSED
+    db.commit()
+    return {"id": rec.id, "status": "dismissed"}
 
 
 def dismiss_pricing(db: Session, business: Business, recommendation_id: int) -> dict:
     rec = recommendation_repository.get_pricing_recommendation(db, recommendation_id, business.id)
     if rec is None:
         raise NotFoundError("Rekomendasi tidak ditemukan.")
-    rec.status = RecommendationStatus.DISMISSED
-    db.commit()
-    return {"id": rec.id, "status": "dismissed"}
+    return _dismiss_pricing_rec(db, rec)
 
 
 def dismiss_restock(db: Session, business: Business, recommendation_id: int) -> dict:
     rec = recommendation_repository.get_restock_recommendation(db, recommendation_id, business.id)
     if rec is None:
         raise NotFoundError("Rekomendasi tidak ditemukan.")
-    rec.status = RecommendationStatus.DISMISSED
-    db.commit()
-    return {"id": rec.id, "status": "dismissed"}
+    return _dismiss_restock_rec(db, rec)

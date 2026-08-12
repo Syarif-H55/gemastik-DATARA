@@ -9,10 +9,20 @@ from app.models.enums import MovementType
 from app.repositories import product_repository
 from app.schemas.inventory import InventoryMovementCreateRequest
 
+# API terminology (API Contract bab 9.2, lowercase) -> DB enum (Data Dictionary bab 9.2).
 _MOVEMENT_MAP = {
     "received": MovementType.RESTOCK,
+    "sale": MovementType.SALE,
     "waste": MovementType.WASTE,
     "adjustment": MovementType.ADJUSTMENT,
+}
+
+# DB enum -> API terminology, agar response konsisten dengan request (lowercase).
+_MOVEMENT_API_TERM = {
+    MovementType.RESTOCK: "received",
+    MovementType.SALE: "sale",
+    MovementType.WASTE: "waste",
+    MovementType.ADJUSTMENT: "adjustment",
 }
 
 
@@ -34,10 +44,10 @@ def list_inventory(db: Session, business: Business) -> list[dict]:
 
 
 def _compute_delta(movement_type: str, quantity: float) -> float:
-    if movement_type == "received":
+    if movement_type in ("received", "sale"):
         if quantity <= 0:
-            raise BusinessError("Quantity untuk received harus lebih dari 0.")
-        return quantity
+            raise BusinessError(f"Quantity untuk {movement_type} harus lebih dari 0.")
+        return -quantity if movement_type == "sale" else quantity
     if movement_type == "waste":
         if quantity <= 0:
             raise BusinessError("Quantity untuk waste harus lebih dari 0.")
@@ -53,10 +63,8 @@ def create_movement(db: Session, business: Business, payload: InventoryMovementC
     movement_type = _MOVEMENT_MAP.get(payload.movement_type)
     if movement_type is None:
         raise BusinessError("Jenis movement tidak didukung.")
-    if movement_type == MovementType.RESTOCK and payload.quantity <= 0:
-        raise BusinessError("Quantity untuk received harus lebih dari 0.")
-    if movement_type == MovementType.WASTE and payload.quantity <= 0:
-        raise BusinessError("Quantity untuk waste harus lebih dari 0.")
+    if payload.movement_type in ("received", "sale", "waste") and payload.quantity <= 0:
+        raise BusinessError(f"Quantity untuk {payload.movement_type} harus lebih dari 0.")
 
     inventory = product_repository.get_inventory_by_product(db, product.id)
     if inventory is None:
@@ -67,6 +75,8 @@ def create_movement(db: Session, business: Business, payload: InventoryMovementC
     movement_date = payload.movement_date or datetime.now()
     delta = _compute_delta(payload.movement_type, payload.quantity)
     current = float(inventory.current_stock)
+    if movement_type == MovementType.SALE and delta < 0 and current + delta < 0:
+        raise BusinessError("Stok tidak mencukupi untuk penjualan ini.")
     new_stock = max(0.0, current + delta)
 
     movement = product_repository.create_movement(
@@ -86,7 +96,7 @@ def create_movement(db: Session, business: Business, payload: InventoryMovementC
         "id": movement.id,
         "product_id": product.id,
         "product_name": product.name,
-        "movement_type": movement.movement_type.value,
+        "movement_type": _MOVEMENT_API_TERM[movement.movement_type],
         "quantity": delta,
         "current_stock": new_stock,
         "note": payload.note,
@@ -103,7 +113,7 @@ def list_movements(db: Session, business: Business, *, limit: int = 100, product
                 "id": m.id,
                 "product_id": m.product_id,
                 "product_name": m.product.name if m.product else None,
-                "movement_type": m.movement_type.value,
+                "movement_type": _MOVEMENT_API_TERM[m.movement_type],
                 "quantity": float(m.quantity),
                 "stock_after": float(m.stock_after) if m.stock_after is not None else None,
                 "note": m.note,

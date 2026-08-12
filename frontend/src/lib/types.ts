@@ -7,7 +7,7 @@ export interface User {
   role: Role;
 }
 
-export type ProductMovementType = "received" | "issued" | "adjustment" | "sale";
+export type ProductMovementType = "received" | "waste" | "adjustment" | "sale";
 
 export interface Product {
   id: number;
