@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChartDonut } from "@/components/datara-icons";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AuthBackdrop } from "@/components/auth/auth-backdrop";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -57,17 +57,19 @@ export default function RegisterPage() {
 
   return (
     <main className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-16">
+      <AuthBackdrop />
+
       <div className="flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-xl bg-foreground text-background">
+        <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
           <ChartDonut className="size-5" />
         </span>
         <div className="text-left">
-          <p className="text-lg font-semibold tracking-tight">DATARA</p>
+          <p className="text-2xl font-semibold tracking-tight">DATARA</p>
           <p className="text-sm text-muted-foreground">Dari Data Menjadi Keputusan</p>
         </div>
       </div>
 
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-sm border-white/60 bg-white/70 shadow-[0_24px_70px_-24px_rgba(30,64,175,0.4)] backdrop-blur-2xl dark:border-white/10 dark:bg-white/5 dark:shadow-none">
         <CardHeader>
           <CardTitle>Daftar</CardTitle>
           <CardDescription>Buat akun Pemilik UMKM Food & Beverage</CardDescription>
@@ -122,9 +124,7 @@ export default function RegisterPage() {
             </div>
 
             {error ? (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <div className="rounded-lg bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</div>
             ) : null}
 
             <Button type="submit" className="w-full" disabled={loading}>

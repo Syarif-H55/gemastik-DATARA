@@ -11,13 +11,6 @@ from app.models.enums import CostType
 from app.repositories import product_repository
 from app.schemas.product import ProductCostsUpdateRequest, ProductCreateRequest, ProductUpdateRequest
 
-_COST_TYPES = {
-    "raw_material": CostType.RAW_MATERIAL,
-    "packaging": CostType.PACKAGING,
-    "direct_labor": CostType.DIRECT_LABOR,
-    "allocated_overhead": CostType.PRODUCTION_OVERHEAD,
-}
-
 _COST_NAMES = {
     CostType.RAW_MATERIAL: "Bahan Baku",
     CostType.PACKAGING: "Kemasan",
@@ -81,7 +74,14 @@ def create_product(db: Session, business: Business, payload: ProductCreateReques
         product_id=product.id,
         current_stock=payload.current_stock,
     )
-    if payload.hpp is not None and payload.hpp > 0:
+    if payload.cost_items is not None:
+        # Rincian HPP bebas dari form produk: simpan apa adanya (name + biaya).
+        product_repository.replace_costs(
+            db,
+            product_id=product.id,
+            items=[item.model_dump() for item in payload.cost_items],
+        )
+    elif payload.hpp is not None and payload.hpp > 0:
         # Quick-add dari halaman transaksi: HPP tunggal dipetakan ke komponen
         # Bahan Baku agar unit_hpp langsung tersedia untuk Smart Pricing.
         product_repository.upsert_cost(
@@ -111,6 +111,13 @@ def update_product(db: Session, business: Business, product_id: int, payload: Pr
         product.low_stock_threshold = payload.low_stock_threshold
     if payload.is_active is not None:
         product.is_active = payload.is_active
+    if payload.cost_items is not None:
+        # Rincian HPP ikut diupdate di form edit produk (replace-all).
+        product_repository.replace_costs(
+            db,
+            product_id=product.id,
+            items=[item.model_dump() for item in payload.cost_items],
+        )
     db.commit()
     return product_payload(db, product)
 
@@ -126,12 +133,16 @@ def deactivate_product(db: Session, business: Business, product_id: int) -> dict
 
 def costs_payload(db: Session, product_id: int) -> dict:
     costs = product_repository.list_costs(db, product_id)
-    by_type = {c.cost_type: float(c.cost_per_unit) for c in costs}
     return {
-        "raw_material": by_type.get(CostType.RAW_MATERIAL, 0.0),
-        "packaging": by_type.get(CostType.PACKAGING, 0.0),
-        "direct_labor": by_type.get(CostType.DIRECT_LABOR, 0.0),
-        "allocated_overhead": by_type.get(CostType.PRODUCTION_OVERHEAD, 0.0),
+        "items": [
+            {
+                "id": c.id,
+                "name": c.name,
+                "cost_per_unit": float(c.cost_per_unit),
+                "cost_type": c.cost_type.value,
+            }
+            for c in costs
+        ],
         "unit_hpp": compute_unit_hpp(db, product_id),
     }
 
@@ -147,20 +158,11 @@ def update_costs(db: Session, business: Business, product_id: int, payload: Prod
     product = product_repository.get_by_business(db, product_id, business.id)
     if product is None:
         raise NotFoundError("Produk tidak ditemukan.")
-    values = {
-        "raw_material": payload.raw_material,
-        "packaging": payload.packaging,
-        "direct_labor": payload.direct_labor,
-        "allocated_overhead": payload.allocated_overhead,
-    }
-    for key, amount in values.items():
-        product_repository.upsert_cost(
-            db,
-            product_id=product_id,
-            cost_type=_COST_TYPES[key],
-            name=_COST_NAMES[_COST_TYPES[key]],
-            cost_per_unit=amount,
-        )
+    product_repository.replace_costs(
+        db,
+        product_id=product_id,
+        items=[item.model_dump() for item in payload.items],
+    )
     db.commit()
     return costs_payload(db, product_id)
 

@@ -27,6 +27,8 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+# Agent skills (work folder, bukan bagian repo)
+.agents/
 # Python
 .venv/
 __pycache__/

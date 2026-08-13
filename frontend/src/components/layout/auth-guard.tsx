@@ -13,16 +13,25 @@ function getAuthSnapshot(): boolean {
   return isAuthenticated();
 }
 
+function subscribeNothing(): () => void {
+  return () => {};
+}
+
+function getHydratedSnapshot(): boolean {
+  return true;
+}
+
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const hydrated = React.useSyncExternalStore(subscribeNothing, getHydratedSnapshot, () => false);
   const authed = React.useSyncExternalStore(subscribeAuth, getAuthSnapshot, () => false);
 
   React.useEffect(() => {
-    if (!authed) {
+    if (hydrated && !authed) {
       router.replace("/login");
     }
-  }, [authed, router]);
+  }, [hydrated, authed, router]);
 
-  if (!authed) return null;
+  if (!hydrated || !authed) return null;
   return <>{children}</>;
 }

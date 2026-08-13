@@ -231,7 +231,7 @@ export function ChatPanel() {
               messages.map((m) =>
                 m.role === "user" ? (
                   <div key={m.id} className="flex flex-col items-end">
-                    <div className="max-w-[85%] whitespace-pre-wrap rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground md:max-w-[75%] lg:max-w-[60%]">
+                    <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-md bg-primary px-3 py-2 text-sm text-primary-foreground md:max-w-[75%] lg:max-w-[60%]">
                       {m.content}
                     </div>
                     {m.created_at ? (
@@ -246,7 +246,7 @@ export function ChatPanel() {
                       <Robot className="size-4" />
                     </span>
                     <div className="flex flex-col items-start">
-                      <div className="max-w-[85%] whitespace-pre-wrap rounded-lg border bg-muted/50 px-3 py-2 text-sm md:max-w-[75%] lg:max-w-[60%]">
+                      <div className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-bl-md border bg-muted/50 px-3 py-2 text-sm md:max-w-[75%] lg:max-w-[60%]">
                         {m.content}
                       </div>
                       {m.created_at ? (

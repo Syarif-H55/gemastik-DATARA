@@ -47,6 +47,17 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   });
 
   if (res.status === 401) {
+    const isLoginEndpoint = path.startsWith("/auth/login") || path.startsWith("/auth/google");
+    if (isLoginEndpoint) {
+      let message = "Email atau kata sandi salah.";
+      try {
+        const body = await res.json();
+        if (typeof body?.message === "string" && body.message) message = body.message;
+      } catch {
+        // abaikan, pakai pesan default
+      }
+      throw new ApiError(401, message);
+    }
     clearToken();
     if (typeof window !== "undefined" && window.location.pathname !== "/login") {
       // eslint-disable-next-line @next/next/no-location-assign-relative-destination

@@ -22,6 +22,18 @@ export interface Product {
   updated_at: string;
 }
 
+export interface ProductCostItem {
+  id?: number;
+  name: string;
+  cost_per_unit: number;
+  cost_type?: string;
+}
+
+export interface ProductCosts {
+  items: ProductCostItem[];
+  unit_hpp: number;
+}
+
 export interface ProductProfitability {
   product_id: number;
   name: string;

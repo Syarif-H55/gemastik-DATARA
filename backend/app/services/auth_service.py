@@ -30,10 +30,15 @@ def _verify_google_id_token(id_token: str, client_id: str) -> dict:
     """
     try:
         info = google_id_token.verify_oauth2_token(
-            id_token, google_requests.Request(), client_id
+            id_token,
+            google_requests.Request(),
+            client_id,
+            clock_skew_in_seconds=300,
         )
     except Exception as exc:
-        raise UnauthorizedError("Token Google tidak valid atau sudah kedaluwarsa.") from exc
+        raise UnauthorizedError(
+            f"Token Google tidak valid atau sudah kedaluwarsa. ({type(exc).__name__}: {exc})"
+        ) from exc
     if info.get("iss") not in _GOOGLE_ISSUERS:
         raise UnauthorizedError("Token Google tidak valid.")
     return info

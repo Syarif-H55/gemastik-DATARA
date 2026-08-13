@@ -6,7 +6,7 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
-from app.models.enums import MovementType
+from app.models.enums import CostType, MovementType
 from app.models.inventory_item import InventoryItem
 from app.models.inventory_movement import InventoryMovement
 from app.models.product import Product
@@ -16,7 +16,7 @@ from app.models.product_cost import ProductCost
 def list_by_business(db: Session, business_id: int) -> list[Product]:
     return (
         db.query(Product)
-        .filter(Product.business_id == business_id)
+        .filter(Product.business_id == business_id, Product.is_active.is_(True))
         .order_by(Product.id.asc())
         .all()
     )
@@ -93,6 +93,31 @@ def upsert_cost(
         cost.cost_per_unit = cost_per_unit
     db.flush()
     return cost
+
+
+def replace_costs(
+    db: Session,
+    *,
+    product_id: int,
+    items: list[dict],
+) -> list[ProductCost]:
+    """Ganti seluruh rincian HPP produk (delete-all + insert baru).
+
+    Items adalah list dict: ``{"name": str, "cost_per_unit": float}``.
+    """
+    db.query(ProductCost).filter(ProductCost.product_id == product_id).delete()
+    created: list[ProductCost] = []
+    for item in items:
+        cost = ProductCost(
+            product_id=product_id,
+            cost_type=CostType.RAW_MATERIAL,
+            name=item["name"],
+            cost_per_unit=item["cost_per_unit"],
+        )
+        db.add(cost)
+        created.append(cost)
+    db.flush()
+    return created
 
 
 # ---------------------------------------------------------------------------

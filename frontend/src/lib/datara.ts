@@ -7,6 +7,7 @@ import type {
   GrowthStage,
   PricingRecommendation,
   Product,
+  ProductCosts,
   ProductForecast,
   ProductProfitability,
   RestockRecommendation,
@@ -77,6 +78,7 @@ export function createProduct(input: {
   current_stock?: number;
   low_stock_threshold?: number;
   hpp?: number;
+  cost_items?: { name: string; cost_per_unit: number }[];
 }): Promise<Product> {
   return api.post<Product>("/products", {
     name: input.name,
@@ -86,7 +88,39 @@ export function createProduct(input: {
     current_stock: input.current_stock ?? 0,
     low_stock_threshold: input.low_stock_threshold ?? 0,
     hpp: input.hpp,
+    cost_items: input.cost_items,
   });
+}
+
+export function updateProduct(
+  id: number,
+  input: {
+    name?: string;
+    sku?: string;
+    selling_price?: number;
+    unit?: string;
+    low_stock_threshold?: number;
+    is_active?: boolean;
+    cost_items?: { name: string; cost_per_unit: number }[];
+  }
+): Promise<Product> {
+  return api.put<Product>(`/products/${id}`, {
+    name: input.name,
+    sku: input.sku,
+    selling_price: input.selling_price,
+    unit: input.unit,
+    low_stock_threshold: input.low_stock_threshold,
+    is_active: input.is_active,
+    cost_items: input.cost_items,
+  });
+}
+
+export function deleteProduct(id: number): Promise<Product> {
+  return api.delete<Product>(`/products/${id}`);
+}
+
+export function fetchProductCosts(id: number): Promise<ProductCosts> {
+  return api.get<ProductCosts>(`/products/${id}/costs`);
 }
 
 export function fetchProductProfitability(): Promise<ProductProfitability[]> {

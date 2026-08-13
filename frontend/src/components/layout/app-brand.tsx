@@ -13,9 +13,9 @@ import { cn } from "@/lib/utils";
  * Expanded: [ikon logo] [DATARA] ............ [tombol toggle]
  * Collapsed (data-collapsible=icon, CSS-driven):
  *   - teks "DATARA" disembunyikan dengan transisi halus (w-0 + opacity-0),
- *   - ikon logo tetap terlihat dan berada di tengah sidebar,
- *   - tombol toggle membesar dan mengambang di garis batas kanan sidebar
- *     (absolute -right-3.5 top-5) agar tidak menabrak logo.
+ *   - ikon logo di link ikut memudar agar tidak dobel,
+ *   - tombol toggle BERUBAH menjadi logo DATARA (kotak biru + ChartDonut)
+ *     yang terpusat di rel; klik logo = perluas sidebar kembali.
  *
  * Kelas `group-data-[collapsible=icon]:*` hanya aktif saat sidebar desktop
  * terlipat; pada mobile (Sheet) teks tetap tampil penuh.
@@ -37,10 +37,16 @@ export function AppBrand() {
         title="DATARA"
         className={cn(
           "flex min-w-0 flex-1 items-center gap-2 overflow-hidden px-1 py-0.5",
-          "group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0"
+          "group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0"
         )}
       >
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-foreground text-background">
+        <span
+          className={cn(
+            "flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm",
+            "transition-opacity duration-200",
+            "group-data-[collapsible=icon]:opacity-0"
+          )}
+        >
           <ChartDonut className="size-4" />
         </span>
         <span
@@ -62,16 +68,15 @@ export function AppBrand() {
         title={label}
         className={cn(
           "hidden shrink-0 md:inline-flex",
-          "transition-all duration-200",
-          "group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:-right-3.5 group-data-[collapsible=icon]:top-5 group-data-[collapsible=icon]:z-20 group-data-[collapsible=icon]:size-7 group-data-[collapsible=icon]:rounded-full group-data-[collapsible=icon]:border group-data-[collapsible=icon]:bg-sidebar group-data-[collapsible=icon]:shadow-sm group-data-[collapsible=icon]:hover:bg-sidebar-accent group-data-[collapsible=icon]:hover:text-sidebar-accent-foreground"
+          "transition-[transform,opacity,background-color] duration-200",
+          // Centering saat collapsed memakai auto-margin (bukan translate):
+          // variant shadcn `active:translate-y-px` menimpa properti CSS
+          // `translate`, yang membuat tombol melompat ~17px saat ditekan
+          // dan klik tidak terdaftar. -mt-4 = setengah tinggi tombol (32px).
+          "group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:left-0 group-data-[collapsible=icon]:right-0 group-data-[collapsible=icon]:top-1/2 group-data-[collapsible=icon]:z-20 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:-mt-4 group-data-[collapsible=icon]:rounded-lg group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:bg-primary group-data-[collapsible=icon]:text-primary-foreground group-data-[collapsible=icon]:shadow-sm group-data-[collapsible=icon]:hover:bg-primary/90 group-data-[collapsible=icon]:hover:text-primary-foreground"
         )}
       >
-        <SidebarSimple
-          className={cn(
-            "size-4 transition-transform duration-200",
-            "group-data-[collapsible=icon]:size-4.5 group-data-[collapsible=icon]:rotate-180"
-          )}
-        />
+        {isCollapsed ? <ChartDonut className="size-4" /> : <SidebarSimple className="size-4" />}
         <span className="sr-only">{label}</span>
       </Button>
     </div>

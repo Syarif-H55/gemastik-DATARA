@@ -4,9 +4,9 @@ import * as React from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CaretDown } from "@phosphor-icons/react";
 import { formatRupiah, formatDate, formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useApi } from "@/hooks/use-api";
@@ -57,21 +57,19 @@ export default function DecisionsPage() {
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="relative w-full sm:w-64">
-          <select
-            value={filterProduk}
-            onChange={(e) => setFilterProduk(e.target.value)}
-            className="h-10 w-full appearance-none rounded-lg border bg-white pl-3 pr-9 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          >
-            <option value="all">Semua Produk</option>
+        <Select value={filterProduk} onValueChange={setFilterProduk}>
+          <SelectTrigger className="w-full sm:w-64">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Semua Produk</SelectItem>
             {daftarProduk.map((nama) => (
-              <option key={nama} value={nama}>
+              <SelectItem key={nama} value={nama}>
                 {nama}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-          <CaretDown className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-        </div>
+          </SelectContent>
+        </Select>
         {!loading && !error && (
           <p className="text-sm text-muted-foreground">
             {keputusanTampil.length} keputusan ditampilkan
@@ -116,7 +114,7 @@ export default function DecisionsPage() {
                 <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <Badge className="bg-slate-100 text-slate-700 hover:bg-slate-100">
+                      <Badge variant="secondary">
                         {tipeMeta[d.type]}
                       </Badge>
                       <CardTitle className="text-base">{d.title}</CardTitle>
@@ -129,15 +127,15 @@ export default function DecisionsPage() {
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  <div className="rounded-lg border border-blue-100/70 bg-blue-50/70 p-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  <div className="rounded-lg border border-primary/15 bg-primary/5 p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       Alasan Keputusan
                     </p>
-                    <p className="mt-1.5 text-sm leading-relaxed text-slate-700">
+                    <p className="mt-1.5 text-sm leading-relaxed text-foreground/80">
                       {d.reasoning || d.summary}
                     </p>
                     {d.outcome_notes ? (
-                      <p className="mt-2 border-t border-blue-100/70 pt-2 text-sm leading-relaxed text-slate-500">
+                      <p className="mt-2 border-t border-primary/10 pt-2 text-sm leading-relaxed text-muted-foreground">
                         {d.outcome_notes}
                       </p>
                     ) : null}
@@ -166,7 +164,7 @@ export default function DecisionsPage() {
                         },
                       ] as const
                     ).map((m) => (
-                      <div key={m.label} className="rounded-md border bg-card p-3">
+                      <div key={m.label} className="rounded-lg border bg-card p-3">
                         <p className="text-xs text-muted-foreground">{m.label}</p>
                         <p className="mt-0.5 text-lg font-bold tabular-nums">{m.nilai}</p>
                         <p className={cn("mt-0.5 text-xs font-medium", m.deltaClass)}>{m.delta}</p>

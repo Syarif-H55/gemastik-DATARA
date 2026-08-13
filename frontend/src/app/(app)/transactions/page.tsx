@@ -10,17 +10,20 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Trash, ShoppingBag, Package, Plus } from "@phosphor-icons/react";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { PencilSimple, Trash, ShoppingBag, Package, Plus } from "@phosphor-icons/react";
 import { formatRupiah } from "@/lib/format";
-import { fetchProducts, createProduct, createTransaction } from "@/lib/datara";
+import { fetchProducts, deleteProduct, createTransaction } from "@/lib/datara";
+import type { Product } from "@/lib/types";
+import ProductFormDialog from "@/components/product-form-dialog";
 import { useApi } from "@/hooks/use-api";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -38,13 +41,11 @@ export default function TransactionsPage() {
   const [customer, setCustomer] = React.useState("");
   const [paymentInput, setPaymentInput] = React.useState("");
   const [saving, setSaving] = React.useState(false);
-  const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [creating, setCreating] = React.useState(false);
-  const [newName, setNewName] = React.useState("");
-  const [newPrice, setNewPrice] = React.useState("");
-  const [newHpp, setNewHpp] = React.useState("");
-  const [newStock, setNewStock] = React.useState("");
-  const [newSku, setNewSku] = React.useState("");
+  const [productDialogOpen, setProductDialogOpen] = React.useState(false);
+  const [formKey, setFormKey] = React.useState(0);
+  const [editProduct, setEditProduct] = React.useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = React.useState<Product | null>(null);
+  const [deleting, setDeleting] = React.useState(false);
 
   const removeFromCart = (productId: number) => setCart((prev) => prev.filter((c) => c.productId !== productId));
 
@@ -58,45 +59,31 @@ export default function TransactionsPage() {
 
   const subtotal = cart.reduce((sum, c) => sum + c.quantity * c.unitPrice, 0);
 
-  const createNewProduct = async () => {
-    if (!newName.trim()) {
-      toast.error("Nama produk wajib diisi");
-      return;
-    }
-    const price = Number(newPrice);
-    if (!Number.isFinite(price) || price <= 0) {
-      toast.error("Harga jual harus angka lebih dari 0");
-      return;
-    }
-    let hpp: number | undefined;
-    if (newHpp.trim() !== "") {
-      hpp = Number(newHpp);
-      if (!Number.isFinite(hpp) || hpp < 0) {
-        toast.error("HPP harus angka lebih dari atau sama dengan 0");
-        return;
-      }
-    }
-    setCreating(true);
+  const openCreateDialog = () => {
+    setEditProduct(null);
+    setFormKey((k) => k + 1);
+    setProductDialogOpen(true);
+  };
+
+  const openEditDialog = (product: Product) => {
+    setEditProduct(product);
+    setFormKey((k) => k + 1);
+    setProductDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
     try {
-      await createProduct({
-        name: newName.trim(),
-        sku: newSku.trim() || undefined,
-        selling_price: price,
-        current_stock: Number(newStock) > 0 ? Number(newStock) : 0,
-        hpp,
-      });
-      toast.success(`Produk "${newName.trim()}" berhasil ditambahkan.`);
-      setDialogOpen(false);
-      setNewName("");
-      setNewPrice("");
-      setNewHpp("");
-      setNewStock("");
-      setNewSku("");
+      await deleteProduct(deleteTarget.id);
+      toast.success(`Produk "${deleteTarget.name}" dihapus.`);
+      setCart((prev) => prev.filter((c) => c.productId !== deleteTarget.id));
+      setDeleteTarget(null);
       setReloadKey((k) => k + 1);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal menambahkan produk.");
+      toast.error(err instanceof Error ? err.message : "Gagal menghapus produk.");
     } finally {
-      setCreating(false);
+      setDeleting(false);
     }
   };
 
@@ -143,94 +130,16 @@ export default function TransactionsPage() {
                 <CardTitle>Pilih Produk</CardTitle>
                 <CardDescription>Klik produk untuk menambahkan ke keranjang</CardDescription>
               </div>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm">
-                    <Plus className="size-4" />
-                    Tambah Produk
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Tambah Produk</DialogTitle>
-                    <DialogDescription>
-                      Produk baru langsung tersedia untuk dicatat dalam transaksi.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="newName">Nama Produk</Label>
-                      <Input
-                        id="newName"
-                        placeholder="Contoh: Es Cappuccino"
-                        value={newName}
-                        onChange={(e) => setNewName(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="newSku">SKU (opsional)</Label>
-                      <Input
-                        id="newSku"
-                        placeholder="Contoh: MIN-005"
-                        value={newSku}
-                        onChange={(e) => setNewSku(e.target.value)}
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="space-y-2">
-                        <Label htmlFor="newPrice">Harga Jual (Rp)</Label>
-                        <Input
-                          id="newPrice"
-                          type="number"
-                          min={0}
-                          placeholder="0"
-                          value={newPrice}
-                          onChange={(e) => setNewPrice(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="newHpp">HPP (Rp)</Label>
-                        <Input
-                          id="newHpp"
-                          type="number"
-                          min={0}
-                          placeholder="0"
-                          value={newHpp}
-                          onChange={(e) => setNewHpp(e.target.value)}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Biaya produksi per unit — dipakai untuk Smart Pricing.
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="newStock">Stok Awal</Label>
-                        <Input
-                          id="newStock"
-                          type="number"
-                          min={0}
-                          placeholder="0"
-                          value={newStock}
-                          onChange={(e) => setNewStock(e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={creating}>
-                      Batal
-                    </Button>
-                    <Button onClick={createNewProduct} disabled={creating}>
-                      {creating ? "Menyimpan..." : "Simpan Produk"}
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+              <Button variant="outline" size="sm" onClick={openCreateDialog}>
+                <Plus className="size-4" />
+                Tambah Produk
+              </Button>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="grid gap-2 sm:grid-cols-2">
                   {Array.from({ length: 8 }).map((_, i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
+                    <Skeleton key={i} className="h-24 w-full" />
                   ))}
                 </div>
               ) : (
@@ -239,44 +148,87 @@ export default function TransactionsPage() {
                     const inCart = cart.find((c) => c.productId === p.id);
                     const lowStock = p.stock <= p.low_stock_threshold;
                     return (
-                      <button
+                      <div
                         key={p.id}
-                        type="button"
-                        onClick={() => {
-                          if (inCart && inCart.quantity >= p.stock) {
-                            toast(`Stok "${p.name}" tidak cukup (${p.stock})`);
-                            return;
-                          }
-                          setCart((prev) => {
-                            const existing = prev.find((c) => c.productId === p.id);
-                            if (existing) {
-                              return prev.map((c) => (c.productId === p.id ? { ...c, quantity: c.quantity + 1 } : c));
-                            }
-                            return [...prev, { productId: p.id, quantity: 1, unitPrice: p.selling_price }];
-                          });
-                        }}
                         className={cn(
-                          "flex items-start justify-between gap-2 rounded-md border p-3 text-left transition-colors hover:border-foreground",
-                          inCart ? "border-foreground bg-foreground text-background" : "border-border hover:bg-muted"
+                          "rounded-lg border p-3 transition-all duration-150",
+                          inCart
+                            ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                            : "border-border bg-card hover:border-primary/40 hover:bg-primary/[0.03]"
                         )}
                       >
-                        <div>
-                          <div className="text-sm font-medium">{p.name}</div>
-                          <div className={cn("text-xs", inCart ? "text-background/70" : "text-muted-foreground")}>
-                            {formatRupiah(p.selling_price)}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (inCart && inCart.quantity >= p.stock) {
+                              toast(`Stok "${p.name}" tidak cukup (${p.stock})`);
+                              return;
+                            }
+                            setCart((prev) => {
+                              const existing = prev.find((c) => c.productId === p.id);
+                              if (existing) {
+                                return prev.map((c) => (c.productId === p.id ? { ...c, quantity: c.quantity + 1 } : c));
+                              }
+                              return [...prev, { productId: p.id, quantity: 1, unitPrice: p.selling_price }];
+                            });
+                          }}
+                          className="flex w-full items-start justify-between gap-2 text-left"
+                        >
+                          <div>
+                            <div className="text-sm font-medium">{p.name}</div>
+                            <div className={cn("text-xs", inCart ? "text-primary-foreground/75" : "text-muted-foreground")}>
+                              {formatRupiah(p.selling_price)}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span
+                              className={cn(
+                                "text-xs",
+                                inCart ? "text-primary-foreground/75" : lowStock ? "text-red-600" : "text-muted-foreground"
+                              )}
+                            >
+                              stok: {p.stock}
+                            </span>
+                            {inCart ? (
+                              <span className={cn("rounded-full bg-white px-2 py-0.5 text-xs font-semibold tabular-nums text-primary")}>
+                                {inCart.quantity}x
+                              </span>
+                            ) : null}
+                          </div>
+                        </button>
+                        <div
+                          className={cn(
+                            "mt-2 flex items-center justify-between gap-2 border-t pt-2",
+                            inCart ? "border-primary-foreground/15" : "border-border"
+                          )}
+                        >
+                          <span
+                            className={cn("text-[11px]", inCart ? "text-primary-foreground/60" : "text-muted-foreground")}
+                          >
+                            HPP: {formatRupiah(p.hpp)}/unit
+                          </span>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 gap-1 px-2"
+                              onClick={() => openEditDialog(p)}
+                            >
+                              <PencilSimple className="size-3.5" />
+                              Edit
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 gap-1 px-2 text-red-600 hover:text-red-700"
+                              onClick={() => setDeleteTarget(p)}
+                            >
+                              <Trash className="size-3.5" />
+                              Hapus
+                            </Button>
                           </div>
                         </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <span className={cn("text-xs", inCart ? "text-background/70" : lowStock ? "text-red-600" : "text-muted-foreground")}>
-                            stok: {p.stock}
-                          </span>
-                          {inCart ? (
-                            <span className={cn("rounded px-1 text-xs font-semibold", "bg-background text-foreground")}>
-                              {inCart.quantity}x
-                            </span>
-                          ) : null}
-                        </div>
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -298,7 +250,7 @@ export default function TransactionsPage() {
                     const p = (products ?? []).find((prod) => prod.id === c.productId);
                     if (!p) return null;
                     return (
-                      <div key={c.productId} className="flex items-center gap-3 rounded-md border p-2">
+                      <div key={c.productId} className="flex items-center gap-3 rounded-lg border bg-card p-2.5">
                         <div className="flex-1">
                           <div className="text-sm font-medium">{p.name}</div>
                           <div className="text-xs text-muted-foreground">{formatRupiah(c.unitPrice)} / unit</div>
@@ -395,6 +347,34 @@ export default function TransactionsPage() {
           </CardFooter>
         </Card>
       </div>
+
+      <ProductFormDialog
+        key={formKey}
+        open={productDialogOpen}
+        onOpenChange={setProductDialogOpen}
+        product={editProduct}
+        onSaved={() => setReloadKey((k) => k + 1)}
+      />
+
+      <AlertDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus produk?</AlertDialogTitle>
+            <AlertDialogDescription>
+              &quot;{deleteTarget?.name}&quot; akan dihapus dari daftar produk. Riwayat transaksi, stok, dan rekomendasi
+              tetap tersimpan di sistem.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteTarget(null)} disabled={deleting}>
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={confirmDelete} disabled={deleting}>
+              {deleting ? "Menghapus..." : "Ya, Hapus"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

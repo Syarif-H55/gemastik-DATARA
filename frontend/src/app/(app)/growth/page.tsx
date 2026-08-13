@@ -54,7 +54,7 @@ export default function GrowthPage() {
               <CardHeader className="flex flex-col gap-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-muted text-xs font-semibold tabular-nums">
+                    <span className={cn("flex size-6 items-center justify-center rounded-full text-xs font-semibold tabular-nums", s.status === "current" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
                       {i + 1}
                     </span>
                     <CardTitle className="text-base">{s.label}</CardTitle>

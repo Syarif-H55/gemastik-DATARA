@@ -65,7 +65,7 @@ export default function PricingPage() {
               step={1}
               value={targetMargin}
               onChange={(e) => setTargetMargin(Number(e.target.value))}
-              className="w-full accent-foreground"
+              className="w-full accent-primary"
             />
             <p className="text-xs text-muted-foreground">
               Harga rekomendasi = HPP ÷ (1 − target margin). Dibulatkan ke kelipatan Rp 500.
@@ -97,7 +97,7 @@ export default function PricingPage() {
         </CardHeader>
         <CardContent>
           {changes.length > 0 && (
-            <div className="mb-4 flex flex-col gap-3 rounded-md border border-amber-500/40 bg-amber-500/5 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="mb-4 flex flex-col gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
               <p>
                 <span className="font-medium">{changes.length} produk perlu penyesuaian harga</span>{" "}
                 — terapkan rekomendasi agar target margin tercapai dan roadmap pertumbuhan tetap berjalan.

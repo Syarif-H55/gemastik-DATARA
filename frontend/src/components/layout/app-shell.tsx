@@ -25,7 +25,7 @@ export function AppShell({
     <SidebarProvider>
       <AppSidebar brand={brand} groupLabel={roleLabel} items={items} footer={footer} />
       <SidebarInset className="min-h-svh">
-        <header className="flex shrink-0 items-center gap-2 border-b px-4 h-14">
+        <header className="sticky top-0 z-10 flex shrink-0 items-center gap-2 border-b bg-background/80 px-4 h-14 backdrop-blur-sm">
           {/* Trigger hanya tampil di mobile — di desktop toggle ada di dalam
               sidebar (header brand), supaya tombol tidak dobel. */}
           <SidebarTrigger className="-ml-1 md:hidden" />

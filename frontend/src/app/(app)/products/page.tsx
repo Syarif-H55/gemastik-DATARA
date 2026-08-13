@@ -7,13 +7,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowsDownUp, MagnifyingGlass } from "@phosphor-icons/react";
+import { ArrowsDownUp, CaretDown, MagnifyingGlass } from "@phosphor-icons/react";
 import { formatRupiah, formatPercent } from "@/lib/format";
 import { getProductClass } from "@/lib/demo-data";
-import { fetchProductProfitability } from "@/lib/datara";
+import { fetchProductProfitability, fetchProductCosts } from "@/lib/datara";
+import type { ProductCosts } from "@/lib/types";
 import { useApi } from "@/hooks/use-api";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 type SortKey = "name" | "selling_price" | "hpp" | "unit_profit" | "margin_percent" | "qty_sold" | "total_profit";
@@ -52,6 +54,24 @@ export default function ProductsPage() {
   const [classFilter, setClassFilter] = React.useState<string>("all");
   const [sortKey, setSortKey] = React.useState<SortKey>("total_profit");
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
+  const [expandedId, setExpandedId] = React.useState<number | null>(null);
+  const [costsCache, setCostsCache] = React.useState<Record<number, ProductCosts>>({});
+  const [costsLoadingId, setCostsLoadingId] = React.useState<number | null>(null);
+
+  const toggleExpand = (productId: number) => {
+    if (expandedId === productId) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(productId);
+    if (!costsCache[productId]) {
+      setCostsLoadingId(productId);
+      fetchProductCosts(productId)
+        .then((costs) => setCostsCache((prev) => ({ ...prev, [productId]: costs })))
+        .catch((err) => toast.error(err instanceof Error ? err.message : "Gagal memuat rincian HPP."))
+        .finally(() => setCostsLoadingId(null));
+    }
+  };
 
   const filtered = React.useMemo(() => {
     return profits
@@ -102,12 +122,16 @@ export default function ProductsPage() {
         {(["profitable", "potential", "evaluate"] as const).map((c) => {
           const count = profits.filter((p) => classes.get(p.product_id)?.classification === c).length;
           const label = c === "profitable" ? "Menguntungkan" : c === "potential" ? "Berpotensi" : "Perlu Evaluasi";
+          const dot = c === "profitable" ? "bg-emerald-500" : c === "potential" ? "bg-blue-500" : "bg-red-500";
           return (
             <Card key={c} className={cn(c === "profitable" && "border-emerald-600/30", c === "potential" && "border-blue-600/30", c === "evaluate" && "border-red-600/30")}>
-              <CardContent className="flex items-center justify-between py-4">
-                <div>
-                  <p className="text-sm font-medium">{label}</p>
-                  <p className="text-xs text-muted-foreground">produk diklasifikasikan otomatis</p>
+              <CardContent className="flex items-center justify-between gap-3 py-4">
+                <div className="flex items-center gap-2.5">
+                  <span className={cn("size-2.5 shrink-0 rounded-full", dot)} />
+                  <div>
+                    <p className="text-sm font-medium">{label}</p>
+                    <p className="text-xs text-muted-foreground">produk diklasifikasikan otomatis</p>
+                  </div>
                 </div>
                 <span className="text-2xl font-semibold tabular-nums">{count}</span>
               </CardContent>
@@ -186,29 +210,113 @@ export default function ProductsPage() {
               ) : (
                 filtered.map((p) => {
                   const cls = classes.get(p.product_id);
+                  const isExpanded = expandedId === p.product_id;
+                  const costs = costsCache[p.product_id];
+                  const costItems = costs?.items ?? [];
                   return (
-                    <TableRow key={p.product_id}>
-                      <TableCell>
-                        <div className="font-medium">{p.name}</div>
-                        <div className="text-xs text-muted-foreground">{p.sku}</div>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{formatRupiah(p.selling_price)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatRupiah(p.hpp)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatRupiah(p.unit_profit)}</TableCell>
-                      <TableCell className="text-right">
-                        <Badge className={marginTone(p.margin_percent)}>{formatPercent(p.margin_percent, 0)}</Badge>
-                      </TableCell>
-                      <TableCell className="text-right tabular-nums">{p.qty_sold}</TableCell>
-                      <TableCell className="text-right tabular-nums font-medium">{formatRupiah(p.total_profit)}</TableCell>
-                      <TableCell>
-                        {cls ? (
-                          <div className="space-y-0.5">
-                            <Badge className={classTone[cls.classification]}>{cls.label}</Badge>
-                            <p className="max-w-52 text-xs text-muted-foreground">{cls.reason}</p>
+                    <React.Fragment key={p.product_id}>
+                      <TableRow>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(p.product_id)}
+                              aria-expanded={isExpanded}
+                              aria-label={`Lihat rincian HPP ${p.name}`}
+                              className={cn(
+                                "shrink-0 rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground",
+                                isExpanded && "text-foreground"
+                              )}
+                            >
+                              <CaretDown
+                                className={cn("size-3.5 transition-transform", !isExpanded && "-rotate-90")}
+                              />
+                            </button>
+                            <div className="min-w-0">
+                              <div className="truncate font-medium">{p.name}</div>
+                              <div className="text-xs text-muted-foreground">{p.sku}</div>
+                            </div>
                           </div>
-                        ) : null}
-                      </TableCell>
-                    </TableRow>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{formatRupiah(p.selling_price)}</TableCell>
+                        <TableCell className="text-right">
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(p.product_id)}
+                            className={cn(
+                              "tabular-nums underline-offset-4 hover:underline",
+                              isExpanded && "underline"
+                            )}
+                          >
+                            {formatRupiah(p.hpp)}
+                          </button>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{formatRupiah(p.unit_profit)}</TableCell>
+                        <TableCell className="text-right">
+                          <Badge className={marginTone(p.margin_percent)}>{formatPercent(p.margin_percent, 0)}</Badge>
+                        </TableCell>
+                        <TableCell className="text-right tabular-nums">{p.qty_sold}</TableCell>
+                        <TableCell className="text-right tabular-nums font-medium">{formatRupiah(p.total_profit)}</TableCell>
+                        <TableCell>
+                          {cls ? (
+                            <div className="space-y-0.5">
+                              <Badge className={classTone[cls.classification]}>{cls.label}</Badge>
+                              <p className="max-w-52 text-xs text-muted-foreground">{cls.reason}</p>
+                            </div>
+                          ) : null}
+                        </TableCell>
+                      </TableRow>
+                      {isExpanded ? (
+                        <TableRow>
+                          <TableCell colSpan={columns.length} className="whitespace-normal bg-muted/40 p-0">
+                            <div className="px-6 py-5">
+                              {costsLoadingId === p.product_id ? (
+                                <div className="max-w-xl space-y-3">
+                                  <Skeleton className="h-3 w-36" />
+                                  <Skeleton className="h-4 w-full" />
+                                  <Skeleton className="h-4 w-2/3" />
+                                </div>
+                              ) : costItems.length > 0 ? (
+                                <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-12">
+                                  <div className="min-w-0 flex-1">
+                                    <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                                      Rincian HPP per unit
+                                    </p>
+                                    <div className="grid max-w-2xl gap-x-10 gap-y-1 sm:grid-cols-2">
+                                      {costItems.map((item, i) => (
+                                        <div
+                                          key={item.id ?? i}
+                                          className="flex items-baseline justify-between gap-4 border-b border-dashed border-border py-1 text-sm"
+                                        >
+                                          <span className="truncate text-muted-foreground">{item.name}</span>
+                                          <span className="shrink-0 tabular-nums">{formatRupiah(item.cost_per_unit)}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div className="shrink-0 lg:border-l lg:border-border lg:pl-12">
+                                    <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                                      Total HPP
+                                    </p>
+                                    <p className="text-xl font-semibold tabular-nums">{formatRupiah(p.hpp)}</p>
+                                    <p className="mt-0.5 text-xs text-muted-foreground">
+                                      per unit — dipakai Smart Pricing
+                                    </p>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="max-w-xl text-sm text-muted-foreground">
+                                  Belum ada rincian HPP untuk produk ini. Buka kartu produk di halaman{" "}
+                                  <span className="font-medium text-foreground">Transaksi</span> lalu pilih{" "}
+                                  <span className="font-medium text-foreground">Edit</span> untuk menambahkan
+                                  komponen biaya.
+                                </p>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : null}
+                    </React.Fragment>
                   );
                 })
               )}

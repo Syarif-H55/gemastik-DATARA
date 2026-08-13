@@ -20,7 +20,7 @@ const trendConfig: ChartConfig = {
 };
 
 const categoryConfig: ChartConfig = {
-  value: { label: "Omzet", color: "var(--chart-3)" },
+  value: { label: "Omzet", color: "var(--chart-1)" },
 };
 
 export default function DashboardPage() {
@@ -33,9 +33,13 @@ export default function DashboardPage() {
       <>
         <PageHeader title="Business Dashboard" description="Ringkasan kesehatan bisnis dari data penjualan, HPP, dan biaya operasional." />
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full" />
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 w-full" />
           ))}
+        </div>
+        <div className="mt-4 grid gap-4 lg:grid-cols-5">
+          <Skeleton className="h-72 lg:col-span-3" />
+          <Skeleton className="h-72 lg:col-span-2" />
         </div>
       </>
     );
@@ -77,8 +81,8 @@ export default function DashboardPage() {
         }
       />
 
-      <Card className="mb-4 border-primary/30 bg-primary/5">
-        <CardContent className="flex items-center justify-between gap-4 py-4">
+      <Card className="mb-4 border-primary/25">
+        <CardContent className="flex flex-col gap-4 bg-primary/[0.04] py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <CardTitle className="text-base">Business Health Score</CardTitle>
             <p className="text-xs text-muted-foreground">
@@ -87,11 +91,11 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-3xl font-semibold tabular-nums">{data.business_health.score}</p>
-              <p className="text-xs text-muted-foreground">dari 100</p>
+              <p className="text-4xl leading-none font-semibold tabular-nums">{data.business_health.score}</p>
+              <p className="mt-1 text-xs text-muted-foreground">dari 100</p>
             </div>
             <div className="w-40">
-              <Progress value={data.business_health.score} className="h-3" />
+              <Progress value={data.business_health.score} className="h-2.5" />
             </div>
           </div>
         </CardContent>
@@ -102,7 +106,9 @@ export default function DashboardPage() {
           <Card key={m.label}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{m.label}</CardTitle>
-              <m.icon className="size-4 text-muted-foreground" />
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <m.icon className="size-4" />
+              </span>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold tabular-nums">{m.value}</div>
@@ -117,7 +123,9 @@ export default function DashboardPage() {
           <Card key={m.label}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{m.label}</CardTitle>
-              <m.icon className="size-4 text-muted-foreground" />
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <m.icon className="size-4" />
+              </span>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-semibold tabular-nums">{m.value}</div>
@@ -138,16 +146,16 @@ export default function DashboardPage() {
               <AreaChart data={data.revenue_trend} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="fillRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.3} />
+                    <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.25} />
                     <stop offset="95%" stopColor="var(--color-revenue)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" tickFormatter={(v: string) => new Date(v).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })} tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(v: number) => `Rp ${(v / 1000).toFixed(0)}k`} />
+                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" tickFormatter={(v: string) => new Date(v).toLocaleDateString("id-ID", { day: "2-digit", month: "short" })} tickLine={false} axisLine={false} tickMargin={8} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                <YAxis tickLine={false} axisLine={false} tickMargin={8} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickFormatter={(v: number) => `Rp ${(v / 1000).toFixed(0)}k`} />
                 <ChartTooltip content={<ChartTooltipContent labelFormatter={(v) => `Tanggal: ${v}`} formatter={(value) => formatRupiah(Number(value))} />} />
-                <Area type="monotone" dataKey="revenue" stroke="var(--color-revenue)" fill="url(#fillRevenue)" name="omzet" />
-                <Area type="monotone" dataKey="profit" stroke="var(--color-profit)" fill="var(--color-profit)" fillOpacity={0.15} name="laba" />
+                <Area type="monotone" dataKey="revenue" stroke="var(--color-revenue)" fill="url(#fillRevenue)" name="omzet" strokeWidth={2} />
+                <Area type="monotone" dataKey="profit" stroke="var(--color-profit)" fill="var(--color-profit)" fillOpacity={0.12} name="laba" strokeWidth={2} />
               </AreaChart>
             </ChartContainer>
             <ChartLegend content={<ChartLegendContent nameKey="revenue" />} />
@@ -163,11 +171,11 @@ export default function DashboardPage() {
           <CardContent>
             <ChartContainer config={categoryConfig} className="aspect-auto h-56 w-full">
               <BarChart data={data.category_breakdown} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} />
-                <YAxis tickLine={false} axisLine={false} tickMargin={8} tickFormatter={(v: number) => `Rp ${(v / 1000).toFixed(0)}k`} />
+                <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="name" tickLine={false} axisLine={false} tickMargin={8} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
+                <YAxis tickLine={false} axisLine={false} tickMargin={8} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} tickFormatter={(v: number) => `Rp ${(v / 1000).toFixed(0)}k`} />
                 <ChartTooltip content={<ChartTooltipContent formatter={(value) => formatRupiah(Number(value))} />} />
-                <Bar dataKey="value" fill="var(--color-value)" radius={[6, 6, 0, 0]} />
+                <Bar dataKey="value" fill="var(--color-value)" radius={[6, 6, 0, 0]} maxBarSize={48} />
               </BarChart>
             </ChartContainer>
             <ChartLegend content={<ChartLegendContent nameKey="value" />} />

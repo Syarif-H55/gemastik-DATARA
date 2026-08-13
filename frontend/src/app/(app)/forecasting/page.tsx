@@ -70,33 +70,21 @@ export default function ForecastingPage() {
           {selected ? (
             <>
               <div className="grid gap-4 sm:grid-cols-3">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Prediksi Periode</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-lg font-semibold">{new Date(selected.next_period).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</div>
-                    <p className="text-xs text-muted-foreground">{selected.method}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Estimasi Penjualan</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-semibold tabular-nums">{formatNumber(selected.predicted_units)} unit</div>
-                    <p className="text-xs text-muted-foreground">periode berikutnya</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Kepercayaan</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-semibold tabular-nums">{selected.confidence}%</div>
-                    <p className="text-xs text-muted-foreground">tingkat keyakinan model</p>
-                  </CardContent>
-                </Card>
+                <div className="rounded-lg bg-muted/40 px-4 py-3">
+                  <p className="text-xs font-medium text-muted-foreground">Prediksi Periode</p>
+                  <div className="mt-1 text-lg font-semibold">{new Date(selected.next_period).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" })}</div>
+                  <p className="text-xs text-muted-foreground">{selected.method}</p>
+                </div>
+                <div className="rounded-lg bg-muted/40 px-4 py-3">
+                  <p className="text-xs font-medium text-muted-foreground">Estimasi Penjualan</p>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums">{formatNumber(selected.predicted_units)} unit</div>
+                  <p className="text-xs text-muted-foreground">periode berikutnya</p>
+                </div>
+                <div className="rounded-lg bg-muted/40 px-4 py-3">
+                  <p className="text-xs font-medium text-muted-foreground">Kepercayaan</p>
+                  <div className="mt-1 text-2xl font-semibold tabular-nums">{selected.confidence}%</div>
+                  <p className="text-xs text-muted-foreground">tingkat keyakinan model</p>
+                </div>
               </div>
 
               <div>
@@ -135,8 +123,9 @@ export default function ForecastingPage() {
                       tickLine={false}
                       axisLine={false}
                       tickMargin={8}
+                      tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
                     />
-                    <YAxis tickLine={false} axisLine={false} tickMargin={8} />
+                    <YAxis tickLine={false} axisLine={false} tickMargin={8} tick={{ fontSize: 11, fill: "var(--muted-foreground)" }} />
                     <ChartTooltip content={<ChartTooltipContent />} />
                     <Line type="monotone" dataKey="actual" stroke="var(--color-actual)" strokeWidth={2} dot={false} />
                     <Line type="monotone" dataKey="forecast" stroke="var(--color-forecast)" strokeWidth={2} strokeDasharray="4 4" dot={false} />
@@ -148,7 +137,7 @@ export default function ForecastingPage() {
                 </p>
               </div>
 
-              <div className="rounded-md border bg-muted/40 p-3 text-sm">
+              <div className="rounded-lg border bg-muted/40 p-3 text-sm">
                 <span className="mr-2">
                   <Badge className={trendBadge[selected.trend].className}>
                     {trendBadge[selected.trend].label}
