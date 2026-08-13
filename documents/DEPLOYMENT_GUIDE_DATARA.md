@@ -1,22 +1,24 @@
-# Panduan Deployment DATARA (Vercel + Render + TiDB Cloud)
+# Panduan Deployment DATARA (Vercel + Vercel + TiDB Cloud)
 
-> **Versi:** 1.0
+> **Versi:** 2.0
 > **Tanggal:** 2026-08-14
 > **Status:** Final
 
-Panduan langkah demi langkah untuk men-deploy DATARA secara **gratis ($0)** dan **tanpa kartu kredit**, dengan arsitektur:
+Panduan langkah demi langkah untuk men-deploy DATARA secara **gratis ($0)** dan **tanpa kartu kredit** — seluruh aplikasi (frontend + backend) berjalan di Vercel sebagai dua project terpisah dari satu repo, dengan arsitektur:
 
 ```text
-Frontend Next.js (Vercel — free)
+Frontend Next.js  (Vercel — project #1, free)
         |
         | HTTPS (REST API)
         v
-Backend FastAPI (Render — free)
+Backend FastAPI (Vercel — project #2, Python runtime, free)
         |
         | MySQL-compatible (TLS)
         v
 Database TiDB Cloud Starter (free)
 ```
+
+> Riwayat keputusan: backend awalnya direncanakan di Render, tetapi Render mewajibkan verifikasi kartu kredit saat membuat service meski free tier (tanpa kartu, service tidak bisa dibuat). Karena itu backend dipindah ke Vercel — platform yang sama dengan frontend — yang tidak meminta kartu sama sekali.
 
 ---
 
@@ -24,14 +26,15 @@ Database TiDB Cloud Starter (free)
 
 | Platform | Komponen | Biaya | Batasan penting |
 |---|---|---|---|
-| **Vercel** (Hobby) | Frontend Next.js | **$0 — free forever** | 100 GB bandwidth/bln, ±100K–1M function invocations, non-komersial (cocok untuk kompetisi) |
-| **Render** (free) | Backend FastAPI | **$0 — free forever** | 512 MB RAM, 0.1 CPU, tidur setelah 15 menit idle (cold start 30–60 detik), 750 jam/bln |
+| **Vercel** (Hobby) | Frontend Next.js (`frontend/`) | **$0 — free forever** | 100 GB bandwidth/bln, ±100K function invocations, non-komersial (cocok untuk kompetisi) |
+| **Vercel** (Hobby) | Backend FastAPI (`backend/`, Python runtime) | **$0 — free forever** | Satu Vercel Function; max `maxDuration` 60 detik (diatur `backend/vercel.json`); masuk kuota invocations & CPU-hours yang sama |
 | **TiDB Cloud Starter** | Database MySQL-compatible | **$0 — free forever** | 25 GiB storage + 250 M Request Units/bln per organisasi; kuota reset tiap bulan (throttle, bukan tagihan) |
 
 Poin penting:
 
-- **Tidak ada kartu kredit** yang diminta di ketiga platform.
-- Yang kedaluwarsa 30 hari hanya PostgreSQL/Redis bawaan Render — **tidak digunakan** pada arsitektur ini.
+- **Tidak ada kartu kredit di mana pun** — Vercel Hobby dan TiDB Starter eksplisit tidak memintanya.
+- Serverless Vercel "scale-to-zero": tidak ada tagihan saat idle, cold start singkat (±50–150 ms) — lebih baik dari free tier Render.
+- Fungsi AI Assistant berlari di dalam function; jawaban Gemini yang lambat (>60 detik) bisa timeout — untuk demo biasanya aman (jawaban <30 detik).
 - Jika kuota TiDB habis, koneksi baru ditolak/di-throttle sampai bulan berikutnya; **tidak ada tagihan** tanpa kartu kredit.
 - Fitur AI Assistant butuh `GEMINI_API_KEY` dari Google AI Studio (free tier Google, terpisah dari hosting). Tanpa key, chat AI menampilkan pesan fallback "belum aktif" — aplikasi tetap berjalan normal.
 
@@ -40,11 +43,12 @@ Poin penting:
 ## 2. Prasyarat
 
 - Repo GitHub yang berisi seluruh project (root `frontend/`, `backend/`, `documents/`) sudah di-push.
-- Akun: [TiDB Cloud](https://tidbcloud.com), [Render](https://render.com) (login via GitHub), [Vercel](https://vercel.com) (login via GitHub).
+- Akun: [TiDB Cloud](https://tidbcloud.com) dan [Vercel](https://vercel.com) (login via GitHub).
 - Generator secret acak (mis. `openssl rand -hex 32`) untuk `JWT_SECRET` (minimal 32 karakter).
 - (Opsional) `GEMINI_API_KEY` dari [Google AI Studio](https://aistudio.google.com) dan `GOOGLE_CLIENT_ID` dari Google Cloud Console.
+- ⚠️ **Jangan commit kredensial asli** (password DB, `JWT_SECRET`, `GEMINI_API_KEY`) ke repo — pakai placeholder, isi aslinya hanya di dashboard Vercel.
 
-Catatan: `backend/render.yaml` dan `vercel.json` (di root repo) sudah tersedia di repository — Render dan Vercel akan mendeteksinya otomatis sehingga sebagian besar konfigurasi tidak perlu diketik manual.
+Catatan: file konfigurasi sudah tersedia di repo — `frontend/vercel.json` (framework Next.js) dan `backend/vercel.json` (max duration fungsi). Setiap deploy cukup: import repo dua kali sebagai dua project dengan Root Directory berbeda.
 
 ---
 
@@ -57,52 +61,58 @@ Catatan: `backend/render.yaml` dan `vercel.json` (di root repo) sudah tersedia d
    ```sql
    CREATE DATABASE IF NOT EXISTS datara;
    ```
-4. Unduh **CA certificate** dari dialog **Connect** (tombol "Generate CA certificate") → simpan sebagai `backend/tidb-ca.pem` di repo (file ini publik, bukan rahasia) → commit + push.
-   - Alternatif tanpa file CA: gunakan param `ssl_verify_cert=false&ssl_verify_identity=false` pada URL (TLS tetap aktif, hanya saja CA tidak diverifikasi) — lihat Langkah 2.
-5. **Tes koneksi lokal** sebelum deploy (dari folder `backend/`, pastikan `.env` diisi sementara atau gunakan variabel env langsung):
+4. **TLS**: TiDB Starter hanya menerima koneksi TLS; sertifikatnya diterbitkan Let's Encrypt.
+   - **Opsi A (utama, tanpa file CA)**: pakai param `ssl_disabled=false&ssl_verify_cert=false&ssl_verify_identity=false` — TLS tetap aktif, chain sertifikat tidak diverifikasi. Paling simpel untuk Vercel (tidak bergantung lokasi file).
+   - **Opsi B (bila Opsi A gagal)**: unduh ISRG Root X1 dari `https://letsencrypt.org/certs/isrgrootx1.pem`, simpan sebagai `backend/tidb-ca.pem` (file publik, aman di-commit), lalu URL memakai `?ssl_ca=tidb-ca.pem`.
+5. **Tes koneksi lokal sebelum deploy** (jalankan dari folder `backend/` — penting, `alembic.ini` berada di sana; ganti `<PASSWORD>` dengan password asli):
    ```powershell
-   $env:DATABASE_URL="mysql://221q6c1RP7kNmFU.root:<PASSWORD>@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/datara"; alembic upgrade head
+   $env:DATABASE_URL="mysql+pymysql://<prefix>.root:<PASSWORD>@<host>:4000/datara?ssl_disabled=false&ssl_verify_cert=false&ssl_verify_identity=false"; alembic upgrade head
    ```
-   Jika migrasi berjalan tanpa error, koneksi & CA sudah benar.
+   - Perhatikan scheme wajib **`mysql+pymysql://`** (bukan `mysql://`).
+   - Jika error TLS, ulangi dengan Opsi B:
+     ```powershell
+     $env:DATABASE_URL="mysql+pymysql://<prefix>.root:<PASSWORD>@<host>:4000/datara?ssl_ca=tidb-ca.pem"; alembic upgrade head
+     ```
+   - Jika migrasi selesai tanpa error, koneksi & TLS sudah benar.
 
 ---
 
-## 4. Langkah 2 — Backend: Render
+## 4. Langkah 2 — Backend: Vercel (project #2)
 
-1. Login ke [Render Dashboard](https://dashboard.render.com) → **New +** → **Blueprint**.
-   - Pilih repo GitHub project ini → Render membaca `backend/render.yaml` dan membuat service `datara-api` secara otomatis (Root Directory = `backend`, start command = `alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}`, health check = `/api/health`).
-   - Alternatif manual: **New + → Web Service** → pilih repo → **Root Directory: `backend`** → Environment: `Python` → Build Command: `pip install -r requirements.txt` → Start Command seperti di atas → Instance Type: **Free**.
-2. Isi **Environment Variables** (`⚠️ sync: false` artinya wajib diisi manual):
+1. Login ke [Vercel](https://vercel.com) → **Add New → Project** → **Import** repo GitHub yang sama (yang sudah dipakai untuk frontend).
+2. **Root Directory: `backend`** (klik **Edit** pada setting Root Directory sebelum deploy).
+3. Framework `FastAPI` terdeteksi otomatis (Python runtime; entrypoint `app/main.py` sudah didukung secara resmi).
+4. **Build Command**: `alembic upgrade head` (menjalankan migrasi database saat build, sebelum aplikasi live — aman diulang tiap deploy).
+5. Tambahkan **Environment Variables** di settings project:
    | Key | Contoh nilai | Keterangan |
    |---|---|---|
-   | `DATABASE_URL` | `mysql+pymysql://<prefix>.root:<pw>@<host>:4000/datara?ssl_ca=/opt/render/project/src/backend/tidb-ca.pem` | Path absolut CA di container Render. Tanpa file CA: `...?ssl_ca=` dihapus dan tambahkan `&ssl_verify_cert=false&ssl_verify_identity=false` |
-   | `CORS_ORIGINS` | `https://<frontend>.vercel.app,http://localhost:3000` | Origin yang boleh memanggil API |
+   | `DATABASE_URL` | `mysql+pymysql://<prefix>.root:<pw>@<host>:4000/datara?ssl_disabled=false&ssl_verify_cert=false&ssl_verify_identity=false` | Wajib sama dengan yang berhasil di tes lokal (Opsi A/B) |
+   | `CORS_ORIGINS` | `https://<frontend>.vercel.app,http://localhost:3000` | Domain frontend yang sudah live (mis. `https://datara-murex.vercel.app`) |
    | `JWT_SECRET` | string acak min. 32 karakter | Dipakai menandatangani token login |
    | `GEMINI_API_KEY` | *(opsional)* | Untuk fitur AI Business Assistant |
    | `GOOGLE_CLIENT_ID` | *(opsional)* | Untuk login Google (endpoint `/auth/google`) |
-3. Klik **Apply / Deploy**. Tunggu build selesai (±3–5 menit).
-4. **Generate Domain** (jika belum ada, mis. `https://datara-api.onrender.com`), lalu buka:
+6. Klik **Deploy** → tunggu build (instalasi dependensi + migrasi) selesai.
+7. Buka domain yang diberikan (mis. `https://datara-api.vercel.app`):
    ```
-   https://datara-api.onrender.com/api/health
+   https://datara-api.vercel.app/api/health
    ```
-   Hasil yang benar: `{"status": "ok", ...}`.
-5. Verifikasi juga database aktif: jalankan migrasi otomatis tidak error di log deploy (start command menjalankan `alembic upgrade head` di setiap start — aman diulang).
+   Hasil yang benar: `{"status": "ok", ...}`. Swagger di `/docs`.
 
-Catatan: free tier Render akan *tidur* setelah 15 menit idle dan membutuhkan 30–60 detik saat pertama diakses lagi. Ini normal dan gratis.
+Catatan `maxDuration`: file `backend/vercel.json` menetapkan fungsi berjalan hingga 60 detik. Endpoint AI chat yang memanggil Gemini termasuk hitungan ini; jika jawaban AI terlalu lama sehingga timeout, pertimbangkan pertanyaan yang lebih pendek atau optimasi waktu jawab model.
 
 ---
 
-## 5. Langkah 3 — Frontend: Vercel
+## 5. Langkah 3 — Frontend: Vercel (project #1)
 
-1. Login ke [Vercel](https://vercel.com) → **Add New → Project** → **Import** repo GitHub ini.
-2. Vercel otomatis membaca `vercel.json`: **Root Directory = `frontend`**, build command `npm run build`, install command `npm install`.
-3. Tambahkan **Environment Variable** di tab Settings proyek (kategori Environments / General):
+1. Project frontend sudah dibuat dari repo yang sama dengan **Root Directory: `frontend`** (framework `Next.js` terdeteksi otomatis; `frontend/vercel.json` berisi build/install command).
+2. Pastikan **Environment Variable** project:
    ```
-   NEXT_PUBLIC_API_URL=https://datara-api.onrender.com/api/v1
+   NEXT_PUBLIC_API_URL=https://datara-api.vercel.app/api/v1
    ```
    - Perhatikan suffix `/api/v1` — wajib ada (frontend memanggil path relatif ke base ini).
-   - Setelah menambah variable, **redeploy** agar ter-pick-up.
-4. Klik **Deploy** → tunggu build selesai → buka domain `https://<project>.vercel.app`.
+   - Ganti domain sesuai project backend Langkah 2.
+3. Jika env berubah setelah deploy pertama → klik **Redeploy** di tab Deployments agar ter-pick-up.
+4. Buka `https://<project>.vercel.app` — frontend siap dipakai.
 
 ---
 
@@ -123,14 +133,14 @@ Jika `GOOGLE_CLIENT_ID` diisi dan login Google dipakai:
 
 Checklist setelah semua deploy:
 
-- [ ] `https://datara-api.onrender.com/api/health` → `{"status": "ok", ...}`.
-- [ ] `https://datara-api.onrender.com/docs` (Swagger UI) terbuka.
+- [ ] `https://datara-api.vercel.app/api/health` → `{"status": "ok", ...}`.
+- [ ] `https://datara-api.vercel.app/docs` (Swagger UI) terbuka.
 - [ ] Buka frontend → **Register** akun baru → **Login** berhasil (token tersimpan).
 - [ ] Tambah **produk + HPP**, catat **transaksi**, cek dashboard & laporan menampilkan angka.
 - [ ] Smart Pricing / Smart Restock / Forecasting menghasilkan rekomendasi.
 - [ ] **AI Business Assistant** menjawab dengan data (mis. "berapa stok produk X?") — bukan pesan fallback.
 - [ ] (Jika diaktifkan) Google Sign-In berhasil.
-- [ ] Tidak ada error CORS di DevTools (frontend memanggil `https://datara-api.onrender.com`).
+- [ ] Tidak ada error CORS di DevTools (frontend memanggil `https://datara-api.vercel.app`).
 
 ---
 
@@ -138,12 +148,13 @@ Checklist setelah semua deploy:
 
 | Hal | Kondisi | Tindakan |
 |---|---|---|
-| **Cold start Render** | Service tidur setelah idle 15 menit | Terima (30–60 detik pertama setelah idle) atau pikat `/api/health` tiap 10 menit via monitoring gratis (UptimeRobot). Pastikan jam berjalan di bawah 750 jam/bln. |
-| **Kuota RU TiDB** | Reset tiap bulan; habis = throttled sampai bulan berikutnya | Pantau usage di dashboard TiDB; trafik demo normal berada jauh di bawah kuota. |
+| **Kuota function Vercel** | ±100K invocations + CPU-hours/bln | Trafik demo sangat jauh di bawah; pantau di dashboard Vercel → Usage. |
+| **Function timeout** | Maks 60 detik per request | Pertanyaan AI yang sangat berat saat demo — biarkan singkat; halaman lain aman. |
+| **Kuota RU TiDB** | Reset tiap bulan; habis = throttled sampai bulan berikutnya | Pantau usage di dashboard TiDB; trafik demo normal jauh di bawah kuota. |
 | **Bandwidth Vercel** | 100 GB/bln | Cukup jauh untuk trafik demo; jika hampir habis, cek "Usage" di dashboard Vercel. |
-| **Update kode** | Push ke branch → auto-deploy (Render & Vercel) | Cabang `main` dianggap produksi. |
+| **Update kode** | Push ke `main` → kedua project Vercel auto-deploy | Migrasi DB otomatis jalan di build backend (idempotent). |
 | **DB tidak kedaluwarsa** | TiDB Starter free forever | Tidak perlu membuat ulang database. |
-| **Nonaktif total** | Tidak dipakai sementara | Hapus service di Render (data di TiDB tetap aman); deploy ulang kapan saja lewat Blueprint. Frontend Vercel bisa "Pause" tanpa biaya. |
+| **Nonaktif sementara** | Tidak dipakai | Pause project di Vercel (Settings → Pause) tanpa biaya; data TiDB tetap aman; resume kapan saja. |
 
 ---
 
@@ -151,22 +162,23 @@ Checklist setelah semua deploy:
 
 | Masalah | Kemungkinan penyebab | Solusi |
 |---|---|---|
-| `ora-... / 1045 Access denied` saat migrasi | Kredensial salah; host/port salah | Periksa user `<prefix>.root`, port `4000`, password benar; tes via GUI TiDB "Connect". |
-| `SSL connection error: unable to get local issuer certificate` | CA tidak diverifikasi atau path salah | Pakai path absolut `/opt/render/project/src/backend/tidb-ca.pem`, atau tambah `&ssl_verify_cert=false&ssl_verify_identity=false`. |
-| `ModuleNotFoundError` saat build Render | Requirements tidak ter-install | Pastikan Build Command `pip install -r requirements.txt` dan Root Directory `backend`. |
-| Migrasi gagal di start command | `DATABASE_URL` kosong/tidak valid | Cek env var di tab Settings Render; start command menjalankan `alembic upgrade head` setiap start. |
-| CORS error di browser | `CORS_ORIGINS` tidak memuat domain frontend | Set ke `https://<project>.vercel.app,http://localhost:3000`, redeploy backend. |
-| Frontend memanggil `localhost:8000` | `NEXT_PUBLIC_API_URL` tidak terset di Vercel | Set var + redeploy. Periksa juga tidak ada fallback default yang tersisa di build. |
-| Cold start terlalu lama saat demo | Free tier tidur 15 menit idle | Ping `/api/health` tiap 10 menit sebelum/saat demo (mis. via UptimeRobot). |
+| Login DB `1045 Access denied` | Kredensial salah; host/port salah | Periksa user `<prefix>.root`, port `4000`, password benar; tes via GUI TiDB "Connect". |
+| Error TLS saat tes lokal / deploy | Param SSL tidak dikenali atau CA tidak ditemukan | Pakai Opsi A (`ssl_disabled=false&ssl_verify_cert=false&ssl_verify_identity=false`); atau Opsi B (`ssl_ca=tidb-ca.pem` + file ada di `backend/`). |
+| Build gagal dengan `No module named ...` | Requirements tidak ter-install / root directory salah | Pastikan Root Directory `backend` dan tidak ada penyimpangan requirements. |
+| Build gagal `No such file or directory: 'alembic'` | Build Command dijalankan dari repo root | Build Command dijalankan relatif terhadap Root Directory (`backend`) — pastikan Root Directory sudah diset `backend`. |
+| CORS error di browser | `CORS_ORIGINS` tidak memuat domain frontend | Set ke `https://<frontend>.vercel.app,http://localhost:3000`, lalu redeploy backend. |
+| Frontend memanggil `localhost:8000` | `NEXT_PUBLIC_API_URL` tidak terset | Set var di project frontend + redeploy. |
+| Function timeout (504) saat AI chat | Jawaban Gemini >60 detik | Ajukan pertanyaan lebih pendek; atau optimasi nanti (streaming). |
 | Login Google error `redirect_uri_mismatch` | Origin tidak terdaftar di Google Console | Tambah `https://<project>.vercel.app` ke Authorized JavaScript origins (Langkah 4). |
-| AI chat menjawab fallback "belum aktif" | `GEMINI_API_KEY` kosong | Isi key di Render → redeploy. |
+| AI chat menjawab fallback "belum aktif" | `GEMINI_API_KEY` kosong | Isi key di project backend → redeploy. |
 
 ---
 
 ## 10. Referensi
 
-- `backend/render.yaml` — Blueprint Render (service, root dir, start command, env vars).
-- `vercel.json` (root repo) — konfigurasi Vercel (root dir frontend, build/install command).
+- `backend/vercel.json` — konfigurasi Vercel backend (max duration 60 detik untuk fungsi `app/main.py`).
+- `frontend/vercel.json` — konfigurasi Vercel frontend (framework Next.js, build/install command).
 - `frontend/src/lib/api.ts` — base URL API (dari `NEXT_PUBLIC_API_URL`, default `http://localhost:8000/api/v1`).
 - `backend/app/core/config.py` — variabel env yang dibaca backend (`DATABASE_URL`, `CORS_ORIGINS`, `JWT_SECRET`, `GEMINI_API_KEY`, `GOOGLE_CLIENT_ID`).
 - `backend/alembic/env.py` — migrasi memakai `DATABASE_URL` dari environment.
+- Dokumentasi resmi: [Deploy FastAPI di Vercel](https://vercel.com/docs/frameworks/backend/fastapi), [Python Runtime](https://vercel.com/docs/functions/runtimes/python), [TiDB Cloud Starter](https://docs.pingcap.com/tidbcloud/).
