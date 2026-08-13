@@ -61,7 +61,7 @@ Catatan: `backend/render.yaml` dan `vercel.json` (di root repo) sudah tersedia d
    - Alternatif tanpa file CA: gunakan param `ssl_verify_cert=false&ssl_verify_identity=false` pada URL (TLS tetap aktif, hanya saja CA tidak diverifikasi) — lihat Langkah 2.
 5. **Tes koneksi lokal** sebelum deploy (dari folder `backend/`, pastikan `.env` diisi sementara atau gunakan variabel env langsung):
    ```powershell
-   $env:DATABASE_URL="mysql+pymysql://<prefix>.root:<password>@<host>:4000/datara?ssl_ca=tidb-ca.pem"; alembic upgrade head
+   $env:DATABASE_URL="mysql://221q6c1RP7kNmFU.root:<PASSWORD>@gateway01.ap-southeast-1.prod.aws.tidbcloud.com:4000/datara"; alembic upgrade head
    ```
    Jika migrasi berjalan tanpa error, koneksi & CA sudah benar.
 
