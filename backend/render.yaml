@@ -1,0 +1,30 @@
+# Render Blueprint untuk backend DATARA.
+# Saat repository dihubungkan ke Render, file ini otomatis terdeteksi
+# (dashboard: New + -> Blueprint) sehingga service tinggal dikonfirmasi.
+#
+# Variabel yang wajib diisi manual di dashboard (marked sync: false):
+#   DATABASE_URL  -> mis. mysql+pymysql://<user>:<pass>@<host>:4000/datara?ssl_ca=<path-ca>
+#   CORS_ORIGINS   -> mis. https://<frontend>.vercel.app,http://localhost:3000
+#   JWT_SECRET     -> string acak minimal 32 karakter
+#   GEMINI_API_KEY -> (opsional) API key Google AI Studio untuk AI Assistant
+#   GOOGLE_CLIENT_ID -> (opsional) untuk login dengan Google
+services:
+  - type: web
+    name: datara-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
