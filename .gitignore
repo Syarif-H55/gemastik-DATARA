@@ -29,6 +29,7 @@ Thumbs.db
 .idea/
 # Agent skills (work folder, bukan bagian repo)
 .agents/
+.claude/
 # Python
 .venv/
 __pycache__/
