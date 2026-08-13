@@ -4,8 +4,11 @@ Membaca variabel lingkungan dari file `.env` (root backend/).
 Semua nilai penting diakses melalui `get_settings()` agar ter-cache.
 """
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BASE_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
@@ -54,16 +57,33 @@ class Settings(BaseSettings):
     @property
     def resolved_database_url(self) -> str:
         if self.database_url:
-            return self.database_url
+            return self._resolve_relative_ssl_ca(self.database_url)
         if not self.db_user or not self.db_name:
             raise RuntimeError(
                 "DATABASE_URL (atau DB_USER/DB_NAME) belum dikonfigurasi. "
                 "Salin .env.example menjadi .env dan isi koneksi MySQL."
             )
-        return (
+        return self._resolve_relative_ssl_ca(
             f"mysql+pymysql://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
         )
+
+    @staticmethod
+    def _resolve_relative_ssl_ca(url: str) -> str:
+        marker = "ssl_ca="
+        if marker not in url:
+            return url
+        start = url.index(marker) + len(marker)
+        end = url.find("&", start)
+        if end == -1:
+            end = len(url)
+        value = url[start:end]
+        if Path(value).is_absolute():
+            return url
+        ca_path = BASE_DIR / value
+        if not ca_path.is_file():
+            return url
+        return url[:start] + str(ca_path) + url[end:]
 
     @property
     def resolved_jwt_secret(self) -> str:

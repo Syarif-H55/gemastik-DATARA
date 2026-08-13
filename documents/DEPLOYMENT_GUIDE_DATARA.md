@@ -61,18 +61,14 @@ Catatan: file konfigurasi sudah tersedia di repo — `frontend/vercel.json` (fra
    ```sql
    CREATE DATABASE IF NOT EXISTS datara;
    ```
-4. **TLS**: TiDB Starter hanya menerima koneksi TLS; sertifikatnya diterbitkan Let's Encrypt.
-   - **Opsi A (utama, tanpa file CA)**: pakai param `ssl_disabled=false&ssl_verify_cert=false&ssl_verify_identity=false` — TLS tetap aktif, chain sertifikat tidak diverifikasi. Paling simpel untuk Vercel (tidak bergantung lokasi file).
-   - **Opsi B (bila Opsi A gagal)**: unduh ISRG Root X1 dari `https://letsencrypt.org/certs/isrgrootx1.pem`, simpan sebagai `backend/tidb-ca.pem` (file publik, aman di-commit), lalu URL memakai `?ssl_ca=tidb-ca.pem`.
+4. **TLS**: TiDB Starter hanya menerima koneksi TLS; sertifikat diterbitkan Let's Encrypt (publik). Koneksi memakai CA file `backend/tidb-ca.pem` (sudah ada di repo) lewat param `?ssl_ca=tidb-ca.pem` — **relatif, tanpa path**. Backend (`app/core/config.py`) otomatis mengubah nilainya menjadi path absolut saat build & runtime, sehingga aman dipakai di Vercel maupun lokal.
+   - **Jangan** memakai `ssl_verify_cert=false&ssl_verify_identity=false` tanpa `ssl_ca` — TLS tidak aktif, koneksi dikirim plaintext dan ditolak TiDB (`Connections using insecure transport are prohibited`).
+   - **Jangan** mengisi path absolut di `ssl_ca` (mis. `/opt/render/project/src/backend/tidb-ca.pem` sisa Render) — file tidak akan ditemukan di mesin build/runtime Vercel (`FileNotFoundError`).
 5. **Tes koneksi lokal sebelum deploy** (jalankan dari folder `backend/` — penting, `alembic.ini` berada di sana; ganti `<PASSWORD>` dengan password asli):
    ```powershell
-   $env:DATABASE_URL="mysql+pymysql://<prefix>.root:<PASSWORD>@<host>:4000/datara?ssl_disabled=false&ssl_verify_cert=false&ssl_verify_identity=false"; alembic upgrade head
+   $env:DATABASE_URL="mysql+pymysql://<prefix>.root:<PASSWORD>@<host>:4000/datara?ssl_ca=tidb-ca.pem"; alembic upgrade head
    ```
    - Perhatikan scheme wajib **`mysql+pymysql://`** (bukan `mysql://`).
-   - Jika error TLS, ulangi dengan Opsi B:
-     ```powershell
-     $env:DATABASE_URL="mysql+pymysql://<prefix>.root:<PASSWORD>@<host>:4000/datara?ssl_ca=tidb-ca.pem"; alembic upgrade head
-     ```
    - Jika migrasi selesai tanpa error, koneksi & TLS sudah benar.
 
 ---
@@ -86,7 +82,7 @@ Catatan: file konfigurasi sudah tersedia di repo — `frontend/vercel.json` (fra
 5. Tambahkan **Environment Variables** di settings project:
    | Key | Contoh nilai | Keterangan |
    |---|---|---|
-   | `DATABASE_URL` | `mysql+pymysql://<prefix>.root:<pw>@<host>:4000/datara?ssl_disabled=false&ssl_verify_cert=false&ssl_verify_identity=false` | Wajib sama dengan yang berhasil di tes lokal (Opsi A/B) |
+   | `DATABASE_URL` | `mysql+pymysql://<prefix>.root:<pw>@<host>:4000/datara?ssl_ca=tidb-ca.pem` | `ssl_ca` **relatif tanpa path** — backend resolve otomatis; jangan isi path absolut |
    | `CORS_ORIGINS` | `https://<frontend>.vercel.app,http://localhost:3000` | Domain frontend yang sudah live (mis. `https://datara-murex.vercel.app`) |
    | `JWT_SECRET` | string acak min. 32 karakter | Dipakai menandatangani token login |
    | `GEMINI_API_KEY` | *(opsional)* | Untuk fitur AI Business Assistant |
@@ -163,7 +159,7 @@ Checklist setelah semua deploy:
 | Masalah | Kemungkinan penyebab | Solusi |
 |---|---|---|
 | Login DB `1045 Access denied` | Kredensial salah; host/port salah | Periksa user `<prefix>.root`, port `4000`, password benar; tes via GUI TiDB "Connect". |
-| Error TLS saat tes lokal / deploy | Param SSL tidak dikenali atau CA tidak ditemukan | Pakai Opsi A (`ssl_disabled=false&ssl_verify_cert=false&ssl_verify_identity=false`); atau Opsi B (`ssl_ca=tidb-ca.pem` + file ada di `backend/`). |
+| Error TLS saat tes lokal / deploy | `ssl_ca` tidak ada, bernilai path absolut yang salah (mis. `/opt/render/...`), atau param TLS tanpa `ssl_ca` | Isi `?ssl_ca=tidb-ca.pem` (**relatif**; file ada di `backend/`) — backend otomatis mengubah ke path absolut |
 | Build gagal dengan `No module named ...` | Requirements tidak ter-install / root directory salah | Pastikan Root Directory `backend` dan tidak ada penyimpangan requirements. |
 | Build gagal `No such file or directory: 'alembic'` | Build Command dijalankan dari repo root | Build Command dijalankan relatif terhadap Root Directory (`backend`) — pastikan Root Directory sudah diset `backend`. |
 | CORS error di browser | `CORS_ORIGINS` tidak memuat domain frontend | Set ke `https://<frontend>.vercel.app,http://localhost:3000`, lalu redeploy backend. |
