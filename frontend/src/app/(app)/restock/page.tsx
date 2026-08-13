@@ -92,20 +92,21 @@ export default function RestockPage() {
           </Select>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Produk</TableHead>
-                <TableHead className="text-right">Stok</TableHead>
-                <TableHead className="text-right">Forecast</TableHead>
-                <TableHead className="text-right">Hari Persediaan</TableHead>
-                <TableHead className="text-right">Rekomendasi Restock</TableHead>
-                <TableHead>Prioritas</TableHead>
-                <TableHead>Alasan</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produk</TableHead>
+                  <TableHead className="text-right">Stok</TableHead>
+                  <TableHead className="text-right">Forecast</TableHead>
+                  <TableHead className="text-right">Hari Persediaan</TableHead>
+                  <TableHead className="text-right">Rekomendasi Restock</TableHead>
+                  <TableHead>Prioritas</TableHead>
+                  <TableHead>Alasan</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
               {filtered.map((r) => {
                 const u = urgencyMap[r.urgency];
                 const forecast = forecasts.get(r.product_id);
@@ -128,7 +129,7 @@ export default function RestockPage() {
                     <TableCell>
                       <Badge className={u.className}>{u.label}</Badge>
                     </TableCell>
-                    <TableCell className="max-w-sm text-sm text-muted-foreground">{r.reasoning}</TableCell>
+                    <TableCell className="max-w-sm whitespace-normal break-words text-sm leading-relaxed text-muted-foreground">{r.reasoning}</TableCell>
                     <TableCell>
                       {r.suggested_quantity > 0 && (
                         <Button size="sm" variant="outline" onClick={() => applyRestock(r)} disabled={applyingId === r.id}>
@@ -142,6 +143,73 @@ export default function RestockPage() {
               })}
             </TableBody>
           </Table>
+          </div>
+
+          <div className="space-y-3 md:hidden">
+            {filtered.length === 0 ? (
+              <p className="rounded-lg border border-dashed py-8 text-center text-sm text-muted-foreground">
+                Tidak ada rekomendasi dengan prioritas ini.
+              </p>
+            ) : (
+              filtered.map((r) => {
+                const u = urgencyMap[r.urgency];
+                const forecast = forecasts.get(r.product_id);
+                return (
+                  <div
+                    key={r.product_id}
+                    className={cn(
+                      "rounded-xl border bg-card p-4 ring-1 ring-foreground/10",
+                      r.urgency === "critical" && "border-red-500/30"
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{r.name}</p>
+                        <p className="text-xs text-muted-foreground">{r.sku}</p>
+                      </div>
+                      <Badge className={cn(u.className, "shrink-0")}>{u.label}</Badge>
+                    </div>
+                    <div className="mt-3 grid grid-cols-3 gap-2">
+                      <div className="rounded-lg border bg-card p-2 text-center">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Stok</p>
+                        <p className={cn("text-sm font-semibold tabular-nums", r.current_stock <= r.low_stock_threshold && "text-red-600")}>
+                          {formatNumber(r.current_stock)}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border bg-card p-2 text-center">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Forecast</p>
+                        <p className="text-sm font-semibold tabular-nums">
+                          {forecast ? formatNumber(forecast.predicted_units) : "—"}
+                        </p>
+                      </div>
+                      <div className="rounded-lg border bg-card p-2 text-center">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Hari</p>
+                        <p className="text-sm font-semibold tabular-nums">{r.days_of_supply.toFixed(0)}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Rekomendasi Restock</p>
+                        <p className="text-sm font-semibold tabular-nums">
+                          {r.suggested_quantity > 0 ? `${formatNumber(r.suggested_quantity)} unit` : "—"}
+                        </p>
+                      </div>
+                      {r.suggested_quantity > 0 && (
+                        <Button size="sm" variant="outline" onClick={() => applyRestock(r)} disabled={applyingId === r.id}>
+                          <Package className="size-4" />
+                          {applyingId === r.id ? "..." : "Restock"}
+                        </Button>
+                      )}
+                    </div>
+                    <p className="mt-3 border-t border-border pt-3 text-sm leading-relaxed text-muted-foreground">
+                      {r.reasoning}
+                    </p>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
           <p className="mt-4 text-xs text-muted-foreground">
             Perhitungan memadukan Sales Forecasting dan riwayat penjualan: qty = (forecast harian × lead time) − stok + ambang minimum untuk lead time 3 hari.
           </p>

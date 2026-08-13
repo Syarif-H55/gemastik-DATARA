@@ -1,6 +1,5 @@
 ﻿"use client";
 
-import { Sparkle } from "@/components/datara-icons";
 import { GlassCard } from "@/components/landing/glass-card";
 import { Reveal } from "@/components/landing/reveal";
 
@@ -22,9 +21,11 @@ export function SolutionPanel() {
             className="pointer-events-none absolute -bottom-28 -left-24 size-64 rounded-full bg-sky-400/15 blur-3xl"
           />
           <div className="relative">
-            <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white shadow-lg shadow-blue-600/30">
-              <Sparkle className="size-7" />
-            </span>
+            <img
+              src="/logo_DATARA.svg"
+              alt="Logo DATARA"
+              className="mx-auto size-14 shrink-0"
+            />
             <h2 className="mx-auto mt-6 max-w-2xl text-3xl font-bold tracking-tight text-black md:text-4xl">
               Kenalkan DATARA: Otak di Balik Pertumbuhan UMKM Anda
             </h2>

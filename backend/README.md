@@ -58,7 +58,7 @@ Kredensial tidak di-hardcode. Semua nilai rahasia dibaca dari `.env` (git-ignore
 .venv\Scripts\Activate.ps1
 uvicorn app.main:app --reload --port 8000
 
-backend\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --port 8000
+python.exe -m uvicorn app.main:app --reload --port 8000
 ```
 
 Dokumentasi otomatis (OpenAPI): `http://localhost:8000/docs`.

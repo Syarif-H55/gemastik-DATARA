@@ -81,8 +81,8 @@ export default function DashboardPage() {
         }
       />
 
-      <Card className="mb-4 border-primary/25">
-        <CardContent className="flex flex-col gap-4 bg-primary/[0.04] py-5 sm:flex-row sm:items-center sm:justify-between">
+      <Card className="mb-4">
+        <CardContent className="flex flex-col gap-4 py-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <CardTitle className="text-base">Business Health Score</CardTitle>
             <p className="text-xs text-muted-foreground">

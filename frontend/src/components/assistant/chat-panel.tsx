@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { ChatCircle, CircleNotch, PaperPlaneTilt, Plus, Robot, Sparkle } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
@@ -207,9 +207,9 @@ export function ChatPanel() {
               }
             >
               <SelectTrigger className="h-9 w-full">
-                <SelectValue placeholder="Pilih percakapan" />
+                <span className="text-sm font-medium">Riwayat Chat</span>
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent position="popper" side="bottom" sideOffset={4} collisionPadding={16}>
                 <SelectItem value="new">Percakapan baru</SelectItem>
                 {conversations.map((c) => (
                   <SelectItem key={c.id} value={String(c.id)}>

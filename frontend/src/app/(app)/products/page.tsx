@@ -176,8 +176,9 @@ export default function ProductsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
               <TableRow>
                 {columns.map((col) => (
                   <TableHead key={col.key} className={col.align === "right" ? "text-right" : undefined}>
@@ -257,7 +258,7 @@ export default function ProductsPage() {
                         </TableCell>
                         <TableCell className="text-right tabular-nums">{p.qty_sold}</TableCell>
                         <TableCell className="text-right tabular-nums font-medium">{formatRupiah(p.total_profit)}</TableCell>
-                        <TableCell>
+                        <TableCell className="whitespace-normal">
                           {cls ? (
                             <div className="space-y-0.5">
                               <Badge className={classTone[cls.classification]}>{cls.label}</Badge>
@@ -322,6 +323,131 @@ export default function ProductsPage() {
               )}
             </TableBody>
           </Table>
+          </div>
+
+          <div className="space-y-3 md:hidden">
+            {filtered.length === 0 ? (
+              <p className="rounded-lg border border-dashed py-8 text-center text-sm text-muted-foreground">
+                Tidak ada produk yang cocok dengan pencarian.
+              </p>
+            ) : (
+              filtered.map((p) => {
+                const cls = classes.get(p.product_id);
+                const isExpanded = expandedId === p.product_id;
+                const costs = costsCache[p.product_id];
+                const costItems = costs?.items ?? [];
+                return (
+                  <div key={p.product_id} className="rounded-xl border bg-card p-4 ring-1 ring-foreground/10">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(p.product_id)}
+                          aria-expanded={isExpanded}
+                          aria-label={`Lihat rincian HPP ${p.name}`}
+                          className={cn(
+                            "shrink-0 rounded-sm p-0.5 text-muted-foreground transition-colors hover:text-foreground",
+                            isExpanded && "text-foreground"
+                          )}
+                        >
+                          <CaretDown className={cn("size-3.5 transition-transform", !isExpanded && "-rotate-90")} />
+                        </button>
+                        <div className="min-w-0">
+                          <p className="truncate font-medium">{p.name}</p>
+                          <p className="text-xs text-muted-foreground">{p.sku}</p>
+                        </div>
+                      </div>
+                      {cls ? (
+                        <Badge className={cn(classTone[cls.classification], "shrink-0")}>{cls.label}</Badge>
+                      ) : null}
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <div className="rounded-lg border bg-card p-2">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Harga Jual</p>
+                        <p className="truncate text-sm font-semibold tabular-nums">{formatRupiah(p.selling_price)}</p>
+                      </div>
+                      <div className="rounded-lg border bg-card p-2">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Margin</p>
+                        <p className="text-sm font-semibold">
+                          <Badge className={marginTone(p.margin_percent)}>{formatPercent(p.margin_percent, 0)}</Badge>
+                        </p>
+                      </div>
+                      <div className="rounded-lg border bg-card p-2">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">HPP</p>
+                        <button
+                          type="button"
+                          onClick={() => toggleExpand(p.product_id)}
+                          className="text-sm font-semibold tabular-nums underline-offset-4 hover:underline"
+                        >
+                          {formatRupiah(p.hpp)}
+                        </button>
+                      </div>
+                      <div className="rounded-lg border bg-card p-2">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Laba / Unit</p>
+                        <p className="truncate text-sm font-semibold tabular-nums">{formatRupiah(p.unit_profit)}</p>
+                      </div>
+                      <div className="rounded-lg border bg-card p-2">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Terjual</p>
+                        <p className="text-sm font-semibold tabular-nums">{p.qty_sold}</p>
+                      </div>
+                      <div className="rounded-lg border bg-card p-2">
+                        <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Total Laba</p>
+                        <p className="truncate text-sm font-semibold tabular-nums">{formatRupiah(p.total_profit)}</p>
+                      </div>
+                    </div>
+
+                    {cls ? <p className="mt-2 text-xs text-muted-foreground">{cls.reason}</p> : null}
+
+                    {isExpanded ? (
+                      <div className="mt-3 rounded-lg bg-muted/40 p-4">
+                        {costsLoadingId === p.product_id ? (
+                          <div className="space-y-3">
+                            <Skeleton className="h-3 w-36" />
+                            <Skeleton className="h-4 w-full" />
+                            <Skeleton className="h-4 w-2/3" />
+                          </div>
+                        ) : costItems.length > 0 ? (
+                          <div className="space-y-4">
+                            <div className="min-w-0 flex-1">
+                              <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                                Rincian HPP per unit
+                              </p>
+                              <div className="space-y-1">
+                                {costItems.map((item, i) => (
+                                  <div
+                                    key={item.id ?? i}
+                                    className="flex items-baseline justify-between gap-4 border-b border-dashed border-border py-1 text-sm"
+                                  >
+                                    <span className="min-w-0 truncate text-muted-foreground">{item.name}</span>
+                                    <span className="shrink-0 tabular-nums">{formatRupiah(item.cost_per_unit)}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            <div className="border-t border-border pt-3">
+                              <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+                                Total HPP
+                              </p>
+                              <p className="text-xl font-semibold tabular-nums">{formatRupiah(p.hpp)}</p>
+                              <p className="mt-0.5 text-xs text-muted-foreground">per unit — dipakai Smart Pricing</p>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">
+                            Belum ada rincian HPP untuk produk ini. Buka kartu produk di halaman{" "}
+                            <span className="font-medium text-foreground">Transaksi</span> lalu pilih{" "}
+                            <span className="font-medium text-foreground">Edit</span> untuk menambahkan komponen
+                            biaya.
+                          </p>
+                        )}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })
+            )}
+          </div>
         </CardContent>
       </Card>
       </>

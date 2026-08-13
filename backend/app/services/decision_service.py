@@ -5,6 +5,8 @@ data aktual saat dibaca — tidak pernah menggunakan hasil prediksi.
 """
 from datetime import datetime, timedelta
 
+import math
+
 from sqlalchemy.orm import Session
 
 from app.core.errors import BusinessError, ConflictError, NotFoundError
@@ -96,7 +98,7 @@ def apply_restock(db: Session, business: Business, recommendation_id: int) -> di
     product = product_repository.get_by_business(db, rec.product_id, business.id)
     if product is None:
         raise NotFoundError("Produk tidak ditemukan.")
-    quantity = float(rec.recommended_quantity)
+    quantity = float(math.ceil(rec.recommended_quantity))
     if quantity <= 0:
         raise BusinessError("Tidak ada jumlah restock yang direkomendasikan untuk produk ini.")
 

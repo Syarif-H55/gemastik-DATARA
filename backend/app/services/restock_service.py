@@ -3,6 +3,8 @@
 Menggunakan: Forecast Demand + Current Stock + Safety Days (dikonfigurasi user,
 default 3). Rekomendasi tidak menambah stok; perubahan hanya lewat POST /restock/apply.
 """
+import math
+
 from sqlalchemy.orm import Session
 
 from app.core.errors import NotFoundError
@@ -71,7 +73,7 @@ def build_recommendation(
         "current_stock": current_stock,
         "low_stock_threshold": low_stock_threshold,
         "days_of_supply": round(days_of_supply, 1),
-        "suggested_quantity": round(suggested, 1),
+        "suggested_quantity": math.ceil(suggested),
         "urgency": urgency,
         "reasoning": reason,
         "reason_code": reason_code,

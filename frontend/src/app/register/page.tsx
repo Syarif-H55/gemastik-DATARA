@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChartDonut } from "@/components/datara-icons";
 import { AuthBackdrop } from "@/components/auth/auth-backdrop";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,9 +59,11 @@ export default function RegisterPage() {
       <AuthBackdrop />
 
       <div className="flex items-center gap-3">
-        <span className="flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
-          <ChartDonut className="size-5" />
-        </span>
+        <img
+          src="/logo_DATARA.svg"
+          alt="Logo DATARA"
+          className="size-10 shrink-0"
+        />
         <div className="text-left">
           <p className="text-2xl font-semibold tracking-tight">DATARA</p>
           <p className="text-sm text-muted-foreground">Dari Data Menjadi Keputusan</p>

@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { SidebarSimple } from "@phosphor-icons/react";
-import { ChartDonut } from "@/components/datara-icons";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
@@ -10,12 +9,12 @@ import { cn } from "@/lib/utils";
 /**
  * Brand header pada Sidebar (desktop).
  *
- * Expanded: [ikon logo] [DATARA] ............ [tombol toggle]
+ * Expanded: [logo] [DATARA] ............ [tombol toggle]
  * Collapsed (data-collapsible=icon, CSS-driven):
  *   - teks "DATARA" disembunyikan dengan transisi halus (w-0 + opacity-0),
- *   - ikon logo di link ikut memudar agar tidak dobel,
- *   - tombol toggle BERUBAH menjadi logo DATARA (kotak biru + ChartDonut)
- *     yang terpusat di rel; klik logo = perluas sidebar kembali.
+ *   - logo di link ikut memudar agar tidak dobel,
+ *   - tombol toggle BERUBAH menjadi logo DATARA (mark biru) yang terpusat
+ *     di rel; klik logo = perluas sidebar kembali.
  *
  * Kelas `group-data-[collapsible=icon]:*` hanya aktif saat sidebar desktop
  * terlipat; pada mobile (Sheet) teks tetap tampil penuh.
@@ -40,15 +39,15 @@ export function AppBrand() {
           "group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:p-0"
         )}
       >
-        <span
+        <img
+          src="/logo_DATARA.svg"
+          alt="Logo DATARA"
           className={cn(
-            "flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm",
+            "size-7 shrink-0",
             "transition-opacity duration-200",
             "group-data-[collapsible=icon]:opacity-0"
           )}
-        >
-          <ChartDonut className="size-4" />
-        </span>
+        />
         <span
           className={cn(
             "truncate font-semibold tracking-tight",
@@ -73,10 +72,14 @@ export function AppBrand() {
           // variant shadcn `active:translate-y-px` menimpa properti CSS
           // `translate`, yang membuat tombol melompat ~17px saat ditekan
           // dan klik tidak terdaftar. -mt-4 = setengah tinggi tombol (32px).
-          "group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:left-0 group-data-[collapsible=icon]:right-0 group-data-[collapsible=icon]:top-1/2 group-data-[collapsible=icon]:z-20 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:-mt-4 group-data-[collapsible=icon]:rounded-lg group-data-[collapsible=icon]:border-0 group-data-[collapsible=icon]:bg-primary group-data-[collapsible=icon]:text-primary-foreground group-data-[collapsible=icon]:shadow-sm group-data-[collapsible=icon]:hover:bg-primary/90 group-data-[collapsible=icon]:hover:text-primary-foreground"
+          "group-data-[collapsible=icon]:absolute group-data-[collapsible=icon]:left-0 group-data-[collapsible=icon]:right-0 group-data-[collapsible=icon]:top-1/2 group-data-[collapsible=icon]:z-20 group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:-mt-4 group-data-[collapsible=icon]:rounded-lg group-data-[collapsible=icon]:border-0"
         )}
       >
-        {isCollapsed ? <ChartDonut className="size-4" /> : <SidebarSimple className="size-4" />}
+        {isCollapsed ? (
+          <img src="/logo_DATARA.svg" alt="Logo DATARA" className="size-5" />
+        ) : (
+          <SidebarSimple className="size-4" />
+        )}
         <span className="sr-only">{label}</span>
       </Button>
     </div>

@@ -152,3 +152,19 @@ def test_restock_quantity_never_negative_on_zero_stock(monkeypatch) -> None:
 
     assert rec["suggested_quantity"] >= 0
     assert rec["urgency"] == "critical"
+
+
+def test_restock_suggested_quantity_is_whole_unit(monkeypatch) -> None:
+    """suggested_quantity harus unit bulat (ceil), bukan pecahan seperti 6,2."""
+    monkeypatch.setattr(restock_service, "get_current_stock", lambda db, pid: 10.0)
+    monkeypatch.setattr(
+        restock_service.forecasting_service,
+        "forecast_all",
+        lambda db, business: [{"product_id": 1, "predicted_units": 5.4}],
+    )
+    product = _fake_product(selling_price=12_000, hpp=8000)
+    rec = restock_service.build_recommendation(None, None, product, safety_days=1, lead_time=2)
+
+    # 5.4 * (2+1) - 10 = 6.2 -> dibulatkan ke atas = 7 unit (bukan 6.2)
+    assert rec["suggested_quantity"] == 7
+    assert isinstance(rec["suggested_quantity"], int)

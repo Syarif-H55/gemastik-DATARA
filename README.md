@@ -4,12 +4,14 @@
 
 Decision Support System (DSS) untuk membantu pemilik UMKM *food & beverage* skala mikro mengambil keputusan bisnis berdasarkan data — bukan perkiraan.
 
-| | |
-|---|---|
-| **Versi** | v1.2 (9 Agustus 2026) |
-| **Team** | Pisang — Agil Kurniawan, Syarif Hidayatullah, Raifa Aziz F. P. H. |
-| **Stakeholder** | UMKM |
-| **Status** | Pengembangan aktif |
+
+|                 |                                                                   |
+| --------------- | ----------------------------------------------------------------- |
+| **Versi**       | v1.2 (9 Agustus 2026)                                             |
+| **Team**        | Pisang — Agil Kurniawan, Syarif Hidayatullah, Raifa Aziz F. P. H. |
+| **Stakeholder** | UMKM                                                              |
+| **Status**      | Pengembangan aktif                                                |
+
 
 ---
 
@@ -23,9 +25,13 @@ Akibatnya, pemilik rentan mengalami:
 - **Risiko stok tidak optimal** — kelebihan atau kekurangan persediaan karena tidak ada dasar kebutuhan yang jelas.
 - **Keputusan bisnis kurang tepat** — evaluasi produk dan arah usaha tidak berbasis data, sehingga berpotensi menurunkan profitabilitas.
 
+
+
 ### Problem Statement
 
 > Pemilik usaha mikro makanan dan minuman tidak dapat mengambil keputusan bisnis secara optimal karena belum mampu mengolah data penjualan, HPP, biaya, stok, dan profitabilitas menjadi informasi yang dapat digunakan, sehingga penetapan harga, pengelolaan persediaan, dan evaluasi kinerja produk masih banyak bergantung pada perkiraan dan berisiko menurunkan keuntungan usaha.
+
+
 
 ### Siapa yang Terdampak
 
@@ -34,6 +40,8 @@ Akibatnya, pemilik rentan mengalami:
 - **Usaha itu sendiri** — keputusan berbasis perkiraan menghambat profitabilitas dan pertumbuhan.
 
 ---
+
+
 
 ## Solusi
 
@@ -44,6 +52,8 @@ DATARA mengubah siklus **Data → Analisis → Keputusan → Rekomendasi → Ins
 3. **Rekomendasi** — Smart Pricing, Smart Restock, Business Health, Growth Map.
 4. **Keputusan & monitoring** — pencatatan keputusan yang diterapkan beserta perkembangan indikator bisnis.
 5. **Business Assistant (AI/LLM)** — menjelaskan hasil analisis dan rekomendasi dalam bahasa yang mudah dipahami.
+
+
 
 ### Fitur Utama
 
@@ -58,6 +68,8 @@ DATARA mengubah siklus **Data → Analisis → Keputusan → Rekomendasi → Ins
 - **AI Business Assistant** — penjelasan insight dan rekomendasi (non source-of-truth).
 
 ---
+
+
 
 ## Arsitektur
 
@@ -74,19 +86,27 @@ gemastik-
 - **Backend** menyediakan REST API, validation, decision engine (HPP, pricing, restock, health, growth), forecasting pipeline, dan context builder untuk AI.
 - **Prinsip**: backend/decision engine menghasilkan angka dan keputusan berbasis data, rule, atau model; AI/LLM hanya menjelaskan hasil — AI **bukan** source of truth untuk angka bisnis.
 
+
+
 ## Struktur Dokumen
 
-| Dokumen | Isi |
-|---|---|
-| `documents/PRD DATARA.docx.md` | Spesifikasi produk (problem, objectives, scope, FR) |
-| `documents/DATA_DICTIONARY_AND_DATA_MODEL_DATARA.md` | Skema database & data model (FINAL) |
-| `documents/bussiness-rule-dan-decision-logic.md` | Aturan bisnis & logika pengambilan keputusan (FINAL) |
-| `documents/laporan-frontend-DATARA.md` | Laporan implementasi frontend |
-| `documents/catatan-inkonsistensi-frontend-DATARA.md` | Catatan inkonsistensi kontrak frontend vs dokumen |
+
+| Dokumen                                              | Isi                                                  |
+| ---------------------------------------------------- | ---------------------------------------------------- |
+| `documents/PRD DATARA.docx.md`                       | Spesifikasi produk (problem, objectives, scope, FR)  |
+| `documents/DATA_DICTIONARY_AND_DATA_MODEL_DATARA.md` | Skema database & data model (FINAL)                  |
+| `documents/bussiness-rule-dan-decision-logic.md`     | Aturan bisnis & logika pengambilan keputusan (FINAL) |
+| `documents/laporan-frontend-DATARA.md`               | Laporan implementasi frontend                        |
+| `documents/catatan-inkonsistensi-frontend-DATARA.md` | Catatan inkonsistensi kontrak frontend vs dokumen    |
+
 
 ---
 
+
+
 ## Menjalankan
+
+
 
 ### Frontend
 
@@ -95,6 +115,8 @@ cd frontend
 npm install
 npm run dev
 ```
+
+
 
 ### Backend
 
@@ -107,6 +129,8 @@ uvicorn app.main:app --reload
 ```
 
 ---
+
+
 
 ## Status Pengembangan
 

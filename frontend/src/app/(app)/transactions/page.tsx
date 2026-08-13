@@ -58,6 +58,9 @@ export default function TransactionsPage() {
   };
 
   const subtotal = cart.reduce((sum, c) => sum + c.quantity * c.unitPrice, 0);
+  const payment = paymentInput === "" ? 0 : Number(paymentInput);
+  const change = payment - subtotal;
+  const paymentValid = cart.length > 0 && payment >= subtotal;
 
   const openCreateDialog = () => {
     setEditProduct(null);
@@ -90,6 +93,10 @@ export default function TransactionsPage() {
   const saveTransaction = async () => {
     if (cart.length === 0) {
       toast.error("Keranjang masih kosong");
+      return;
+    }
+    if (payment < subtotal) {
+      toast.error("Uang diterima kurang dari total transaksi");
       return;
     }
     setSaving(true);
@@ -335,13 +342,34 @@ export default function TransactionsPage() {
               <span>Total</span>
               <span className="tabular-nums">{formatRupiah(subtotal)}</span>
             </div>
+            {payment > 0 ? (
+              <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Uang Diterima</span>
+                  <span className="tabular-nums">{formatRupiah(payment)}</span>
+                </div>
+                {change >= 0 ? (
+                  <div className="flex justify-between text-sm font-semibold text-emerald-600">
+                    <span>Kembalian</span>
+                    <span className="tabular-nums">{formatRupiah(change)}</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-sm font-semibold text-red-600">
+                    <span>Uang kurang</span>
+                    <span className="tabular-nums">{formatRupiah(Math.abs(change))}</span>
+                  </div>
+                )}
+              </>
+            ) : cart.length > 0 ? (
+              <p className="text-xs text-muted-foreground">Masukkan Uang Diterima untuk menghitung kembalian.</p>
+            ) : null}
             <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <Package className="size-3.5" />
               Sistem akan mengurangi stok otomatis saat transaksi disimpan.
             </p>
           </CardContent>
           <CardFooter>
-            <Button className="w-full" onClick={saveTransaction} disabled={cart.length === 0 || saving}>
+            <Button className="w-full" onClick={saveTransaction} disabled={cart.length === 0 || saving || !paymentValid}>
               {saving ? "Menyimpan..." : "Simpan Transaksi"}
             </Button>
           </CardFooter>

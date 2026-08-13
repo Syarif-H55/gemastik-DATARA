@@ -53,7 +53,7 @@ export default function DecisionsPage() {
     <>
       <PageHeader
         title="Keputusan & Monitoring"
-        description="Rekap keputusan yang Anda terapkan beserta perkembangan indikator bisnis setelahnya (FR-009, FR-010)."
+        description="Rekap keputusan yang Anda terapkan beserta perkembangan indikator bisnis setelahnya."
       />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -141,7 +141,7 @@ export default function DecisionsPage() {
                     ) : null}
                   </div>
 
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     {(
                       [
                         {

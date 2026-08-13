@@ -30,7 +30,7 @@ export default function GrowthPage() {
     <>
       <PageHeader
         title="Roadmap Pertumbuhan"
-        description="Evaluasi perkembangan usaha berdasarkan indikator bisnis dan langkah menuju target pertumbuhan berikutnya (FR-011, FR-012)."
+        description="Evaluasi perkembangan usaha berdasarkan indikator bisnis dan langkah menuju target pertumbuhan berikutnya."
       />
 
       {loading ? (
